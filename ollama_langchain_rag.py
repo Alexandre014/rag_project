@@ -77,7 +77,7 @@ db = FAISS.from_documents(docs, embeddings)
 # Create a retriever object from the 'db' with a search configuration where it retrieves up to 4 relevant splits/documents.
 retriever = db.as_retriever(search_kwargs={"k": 4})
 
-docs = retriever.get_relevant_documents(question)
+docs = retriever.invoke(question)
 context = " ".join([doc.page_content for doc in docs])  # concatenate text
 
 

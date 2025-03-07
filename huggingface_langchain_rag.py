@@ -9,7 +9,7 @@ from transformers import AutoTokenizer, pipeline
 from langchain import HuggingFacePipeline
 from langchain.chains import RetrievalQA
 from langchain_community.document_loaders import PyPDFLoader
-
+from transformers import AutoTokenizer, AutoModel, AutoModelForCausalLM
 
 file_path = ".\data\pdf\consignes_stage.pdf"
 
@@ -57,18 +57,24 @@ embeddings = HuggingFaceEmbeddings(
 db = FAISS.from_documents(docs, embeddings)
 #use save_local() and load_local() to save the vector as an index
 
-question = "La note rentre t-elle dans la moyenne générale ?"
-searchDocs = db.similarity_search(question)
 
-print("chosen chunk : \n", searchDocs[0].page_content)
-
+question = "Dans quel format faut il faire la lettre au début du stage ?"
+#question = input("Pose ta question : ")
 
 
 #step 2
 
 
+
+# Create a retriever object from the 'db' with a search configuration where it retrieves up to 4 relevant splits/documents.
+# retriever = db.as_retriever(search_kwargs={"k": 4})
+# docs = retriever.invoke(question)
+docs = db.similarity_search(question)
+context = " ".join([doc.page_content for doc in docs])  # concatenate text
+
+print("\nCONTEXT \n", context)
+
 """tokenization"""
-from transformers import AutoTokenizer, AutoModel, AutoModelForCausalLM
 
 
 checkpoint = "mistralai/Mistral-7B-v0.1"
@@ -77,32 +83,23 @@ token = "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"
 tokenizer = AutoTokenizer.from_pretrained(checkpoint, token = token)
 tokenizer.pad_token = tokenizer.eos_token
 
+prompt = f"Answer the question by using this context : {context} \n\n Question : {question}"
+
+
+print("\nPROMPT \n", prompt)
 raw_inputs = [
-    question,
+    prompt,
 ]
 
-inputs = tokenizer(raw_inputs, padding=True, truncation=True, return_tensors="pt")
+inputs = tokenizer(raw_inputs, padding=True, return_tensors="pt")
 
-print(inputs)
-
+print("\INPUTS \n", inputs)
 
 """model"""
 model = AutoModelForCausalLM.from_pretrained(checkpoint, token = token) #model for generation
 
 
-
-question = "Dans quel format faut il faire la lettre au début du stage ?"
-#question = input("Pose ta question : ")
-
-# Create a retriever object from the 'db' with a search configuration where it retrieves up to 4 relevant splits/documents.
-retriever = db.as_retriever(search_kwargs={"k": 4})
-docs = retriever.get_relevant_documents(question)
-context = " ".join([doc.page_content for doc in docs])  # concatenate text
-
-
-
-prompt = f"Answer the question by using this context : {context} \n\n Question : {question}"
-response = model(prompt)
+response = model(**inputs)
 
 print("\n", question, "\n")
-print(response[0]["generated_text"])
+print("RESPONSE :", response[0]["generated_text"])
