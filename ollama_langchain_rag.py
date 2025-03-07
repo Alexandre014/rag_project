@@ -59,8 +59,6 @@ embeddings = HuggingFaceEmbeddings(
 
 
 
-question = "Résume moi ce document"
-#question = input("Pose ta question : ")
 
 #vector store
 db = FAISS.from_documents(docs, embeddings)
@@ -71,25 +69,25 @@ db = FAISS.from_documents(docs, embeddings)
 
 
 #step 2
-
-#searchDocs = db.similarity_search(question) #for search solely on embedings
-
-# Create a retriever object from the 'db' with a search configuration where it retrieves up to 4 relevant splits/documents.
 retriever = db.as_retriever(search_kwargs={"k": 4})
 
-docs = retriever.invoke(question)
-context = " ".join([doc.page_content for doc in docs])  # concatenate text
+question = input("Ask your question :")
+
+while question != "quit":
+
+    docs = retriever.invoke(question)
+    context = " ".join([doc.page_content for doc in docs])  # concatenate text
 
 
-response: ChatResponse = chat(
-    model='llama3.2',
-    messages=[
-        {'role': 'assistant', 'content': context},#give the context
-        {'role': 'user', 'content': question},
-    ]
-)
+    response: ChatResponse = chat(
+        model='llama3.2',
+        messages=[
+            {'role': 'assistant', 'content': context},#give the context
+            {'role': 'user', 'content': question},
+        ]
+    )
 
-
-
-print("\n", question, "\n")
-print(response.message.content)
+    print("\n", question, "\n")
+    print(response.message.content)
+    
+    question = input("Do you need anything else? : ")
