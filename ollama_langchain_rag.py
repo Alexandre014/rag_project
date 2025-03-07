@@ -29,16 +29,18 @@ data = asyncio.run(load_pages(loader))
 
 #print(f"{data[0].metadata}\n")
 
+
 # Display the two first entries
 #print("two first entries: ", data[:2])
 
-
+# Create an instance of the RecursiveCharacterTextSplitter class with specific parameters.
+# It splits text into chunks of 1000 characters each with a 150-character overlap.
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
 
 # 'data' holds the text you want to split, split the text into documents using the text splitter.
 docs = text_splitter.split_documents(data)
 
-#print("first chunk: ", docs[0])
+print("first chunk: ", docs[0])
 
 
 # Define the path to the pre-trained model you want to use
@@ -67,18 +69,31 @@ db = FAISS.from_documents(docs, embeddings)
 #use save_local() and load_local() to save the vector as an index
 
 
+searchDocs = db.similarity_search(question)
 
+print("chosen chunk : \n", searchDocs[0].page_content)
 
 
 #step 2
 
-#searchDocs = db.similarity_search(question) #for search solely on embedings
+
+
+#example
+# Create a retriever object from the 'db' using the 'as_retriever' method.
+# This retriever is likely used for retrieving data or documents from the database.
+# retriever = db.as_retriever()
+
+# docs = retriever.invoke("What is Cheesemaking?")
+# print(docs[0].page_content)
+
+
 
 # Create a retriever object from the 'db' with a search configuration where it retrieves up to 4 relevant splits/documents.
-retriever = db.as_retriever(search_kwargs={"k": 4})
 
-docs = retriever.get_relevant_documents(question)
-context = " ".join([doc.page_content for doc in docs])  # concatenate text
+
+retriever = db.as_retriever(search_kwargs={"k": 4})
+docs = retriever.invoke(question)
+context = " ".join([doc.page_content for doc in docs])  # Concaténer les textes
 
 
 response: ChatResponse = chat(
@@ -89,6 +104,7 @@ response: ChatResponse = chat(
     ]
 )
 
+#prompt = f"Answer the question by using this context : {context} \n\n Question : {question}"
 
 
 print("\n", question, "\n")
