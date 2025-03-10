@@ -1,4 +1,6 @@
 import sys
+import tkinter as tk
+from tkinter import filedialog
 import asyncio
 from langchain.document_loaders import HuggingFaceDatasetLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -12,7 +14,12 @@ from langchain_community.document_loaders import PyPDFLoader
 from ollama import chat
 from ollama import ChatResponse
 
-file_path = ".\data\pdf\consignes_stage.pdf"
+#file_path = ".\data\pdf\consignes_stage.pdf"
+
+root = tk.Tk()
+root.withdraw()  # hide main window
+
+file_path = filedialog.askopenfilename(title="Choose a file")
 
 # Create a loader instance
 loader = PyPDFLoader(file_path)
@@ -28,9 +35,6 @@ async def load_pages(loader):
 data = asyncio.run(load_pages(loader))
 
 #print(f"{data[0].metadata}\n")
-
-# Display the two first entries
-#print("two first entries: ", data[:2])
 
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
@@ -69,20 +73,21 @@ db = FAISS.from_documents(docs, embeddings)
 
 
 #step 2
-retriever = db.as_retriever(search_kwargs={"k": 4})
+retriever = db.as_retriever(search_kwargs={"k": 10000})
 
 question = input("Ask your question :")
 
 while question != "quit":
 
     docs = retriever.invoke(question)
+    print("taille : ",len(docs), docs[-1])
     context = " ".join([doc.page_content for doc in docs])  # concatenate text
 
 
     response: ChatResponse = chat(
         model='llama3.2',
         messages=[
-            {'role': 'assistant', 'content': context},#give the context
+            {'role': 'assistant', 'content': "document : " + context + " --end of the document"},#give the context
             {'role': 'user', 'content': question},
         ]
     )
@@ -91,3 +96,5 @@ while question != "quit":
     print(response.message.content)
     
     question = input("Do you need anything else? : ")
+    
+    
