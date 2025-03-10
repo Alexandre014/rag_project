@@ -1,6 +1,5 @@
 import sys
 import asyncio
-import torch
 import tkinter as tk
 from tkinter import filedialog
 from langchain.document_loaders import HuggingFaceDatasetLoader
@@ -13,6 +12,29 @@ from langchain import HuggingFacePipeline
 from langchain.chains import RetrievalQA
 from langchain_community.document_loaders import PyPDFLoader
 from transformers import AutoTokenizer, AutoModel, AutoModelForCausalLM
+
+file_path = ".\data\pdf\consignes_stage.pdf"
+
+loader = PyPDFLoader(file_path)
+
+# Load the data
+async def load_pages(loader):
+    pages = []
+    async for page in loader.alazy_load(): 
+        pages.append(page)
+    return pages
+
+data = asyncio.run(load_pages(loader))
+
+#print(f"{data[0].metadata}\n")
+
+
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
+
+# 'data' holds the text you want to split, split the text into documents using the text splitter.
+docs = text_splitter.split_documents(data)
+
+
 
 # model for retrieving
 modelPath = "sentence-transformers/all-MiniLM-l6-v2"
@@ -29,45 +51,8 @@ embeddings = HuggingFaceEmbeddings(
     model_kwargs=model_kwargs, # Pass the model configuration options
     encode_kwargs=encode_kwargs # Pass the encoding options
 )
-db = FAISS.load_local("indexes", embeddings=embeddings, allow_dangerous_deserialization= True)
-
-question = "Dans quel format faut il faire la lettre au début du stage ?"
-#question = input("Pose ta question : ")
 
 
-#step 2
-
-
-
-# Create a retriever object from the 'db' with a search configuration where it retrieves up to 4 relevant splits/documents.
-# retriever = db.as_retriever(search_kwargs={"k": 4})
-# docs = retriever.invoke(question)
-docs = db.similarity_search(question)
-context = " ".join([doc.page_content for doc in docs])  # concatenate text
-
-print("\nCONTEXT \n", context)
-
-
-
-prompt = f"Answer the question by using this context : {context} \n\n Question : {question}"
-
-
-print("\nPROMPT \n", prompt)
-raw_inputs = [
-    prompt,
-]
-
-"""tokenization"""
-tokenizer = AutoTokenizer.from_pretrained("model", low_cpu_mem_usage=True)
-
-
-inputs = tokenizer(raw_inputs, padding=True, return_tensors="pt")
-
-print("\INPUTS \n", inputs)
-
-
-"""model"""
-model = AutoModelForCausalLM.from_pretrained("model", low_cpu_mem_usage=True) #model for generation
-
-outputs = model(**inputs)
-print(outputs)# logits
+#vector store
+db = FAISS.from_documents(docs, embeddings)
+db.save_local("indexes")
