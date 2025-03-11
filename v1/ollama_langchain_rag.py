@@ -45,7 +45,7 @@ docs = text_splitter.split_documents(data)
 #print("first chunk: ", docs[0])
 
 
-# Define the path to the pre-trained model you want to use
+# pre-trained model for embedding
 modelPath = "sentence-transformers/all-MiniLM-l6-v2"
 
 # Create a dictionary with model configuration options, specifying to use the CPU for computations
