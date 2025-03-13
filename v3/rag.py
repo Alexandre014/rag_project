@@ -17,8 +17,8 @@ from langchain_community.document_loaders import PyPDFLoader
 from ollama import chat
 from ollama import ChatResponse
 
+#OLLAMA_SERVER_URL = "http://127.0.0.1:11434/api/chat"
 OLLAMA_SERVER_URL = "https://tigre.loria.fr:11434/api/chat"
-
 
 docs_max = 4 #maximum number of documents retrieved and used to generate an answer (documents not files)
 
@@ -40,7 +40,7 @@ def query_ollama(model, messages):
 
 
 """launch the rag on a specified index"""
-def launch_rag(index_location):
+def launch_rag(index_location, generation_model="llama3.2" ):
     #step 1 : load embedding
 
     modelPath = "sentence-transformers/all-MiniLM-l6-v2" # model for embedding
@@ -57,7 +57,7 @@ def launch_rag(index_location):
         model_kwargs=model_kwargs, # Pass the model configuration options
         encode_kwargs=encode_kwargs # Pass the encoding options
     )
-    db = FAISS.load_local("indexes/global_index", embeddings=embeddings, allow_dangerous_deserialization= True)
+    db = FAISS.load_local(index_location, embeddings=embeddings, allow_dangerous_deserialization= True)
 
 
 
@@ -69,7 +69,7 @@ def launch_rag(index_location):
 
     prompt = (
         "You are a french AI assistant answering questions based strictly on the provided documents. "
-        "Your response should be concise, accurate, and directly relevant to the question. "
+        "Your response should be in french, concise, accurate, and directly relevant to the question. "
         "If the documents do not contain enough information, say 'Je ne parviens pas à répondre à partir de ces documents.' "
         "\n\n"
         "### Documents:\n"
@@ -89,7 +89,7 @@ def launch_rag(index_location):
 
         conversation.append({'role': 'user', 'content': prompt.format(context=context, question=question)})
    
-        response = query_ollama("llama3.2", conversation)
+        response = query_ollama(generation_model, conversation)
 
         print("\n", question, "\n")
         print(response)
@@ -103,7 +103,7 @@ def launch_rag(index_location):
 def main():
     index_path = "indexes/global_index"
     #load_index.load_index_from_directory("data/pdf", index_path) #load the index only one time if you don't change the files
-    launch_rag(index_path)
+    launch_rag(index_path, "deepseek-r1:8b")
 
 if __name__ == "__main__":
     main()
