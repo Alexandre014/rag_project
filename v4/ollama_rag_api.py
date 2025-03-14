@@ -13,7 +13,7 @@ class QueryRequest(BaseModel):
     model: str = "deepseek-r1:8b"
     index_path: str = "indexes/global_index"
     docs_max: int = 4  # Default number of retrieved documents
-    ollama_server_url: str = "http://127.0.0.1:11434/api/chat"
+    ollama_server_url: str = "https://tigre.loria.fr:11434/api/chat"
 
 # Function to dynamically load an index
 def load_index(index_path):
