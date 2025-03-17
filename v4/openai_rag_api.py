@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import requests
@@ -13,7 +14,7 @@ class OpenAIRequest(BaseModel):
     model: str
     messages: list  # List of message history
     index_path: str = "indexes/global_index"
-    docs_max: int = 4
+    docs_max: int = 6
     ollama_server_url: str = "https://tigre.loria.fr:11434/api/chat"
 
 # Function to dynamically load an index
@@ -41,9 +42,13 @@ def query_ollama(model, messages, ollama_server_url):
 
 @app.post("/v1/chat/completions")
 def openai_chat(request: OpenAIRequest):
+    
+    #if request contains'tag' return ...
+    # if request contains'Generate a concise, 3-5 word title'
+    
     print("REQUEST:", request)
     # Extract user question from messages
-    user_message = next((msg["content"] for msg in request.messages if msg["role"] == "user"), None)
+    user_message = next((msg["content"] for msg in reversed(request.messages) if msg["role"] == "user"), None)
     if not user_message:
         raise HTTPException(status_code=400, detail="No user message found")
 

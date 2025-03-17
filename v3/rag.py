@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 import sys
@@ -92,9 +93,13 @@ def launch_rag(index_location, generation_model="llama3.2" ):
         response = query_ollama(generation_model, conversation)
 
         print("\n", question, "\n")
-        print(response)
+        print(response['message']['content'])
         conversation.append({'role': 'assistant', 'content': response})
         
+        
+        print("\nLa réponse a été générée à partir des ", len(docs), " documents suivants : ")
+        for doc in docs:
+            print(os.path.basename(doc.metadata['source']), ": page", doc.metadata['page_label'])
         question = input("Posez votre question : ")
     
 
@@ -103,7 +108,7 @@ def launch_rag(index_location, generation_model="llama3.2" ):
 def main():
     index_path = "indexes/global_index"
     #load_index.load_index_from_directory("data/pdf", index_path) #load the index only one time if you don't change the files
-    launch_rag(index_path, "deepseek-r1:8b")
+    launch_rag(index_path, "llama3.2")
 
 if __name__ == "__main__":
     main()
