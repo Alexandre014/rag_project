@@ -4,7 +4,7 @@ import time
 
 API_URL = "http://127.0.0.1:8000/v1/chat/completions"
 QUESTIONS_FILE = "eval_questions.txt"
-CSV_OUTPUT = "/benchmarks/benchmark_results.csv"
+CSV_OUTPUT = "./benchmarks/benchmark_results.csv"
 MODEL_NAME = "mistral"
 INDEX_PATH = "indexes/global_index"
 
