@@ -43,6 +43,15 @@ def query_ollama(model, messages, ollama_server_url):
 @app.post("/v1/chat/completions")
 def openai_chat(request: OpenAIRequest):
     
+    #first request : autocompletion
+    #'content': '### Task:\nYou are an autocompletion system. Continue the text in `<text>` based on the **completion type** in `<type>` and the given language.
+    
+    #second request : summarize the topic
+    #'content': '### Task:\nGenerate a concise, 3-5 word title
+    
+    #third request : generate tags
+    #'content': '### Task:\nGenerate 1-3 broad tags
+    
     #if request contains'tag' return ...
     # if request contains'Generate a concise, 3-5 word title'
     
@@ -107,9 +116,9 @@ def get_models():
     return {
         "object": "list",
         "data": [
-            {"id": "deepseek-r1:8b", "object": "model", "created": 0, "owned_by": "loria.fr"},
-            {"id": "deepseek-r1:32b", "object": "model", "created": 0, "owned_by": "loria.fr"},
-            {"id": "llama3.2", "object": "model", "created": 0, "owned_by": "loria.fr"},
-            {"id": "quen2:7b", "object": "model", "created": 0, "owned_by": "loria.fr"},
+            {"id": "deepseek-r1:8b", "object": "model"},
+            {"id": "deepseek-r1:32b", "object": "model"},
+            {"id": "llama3.2", "object": "model"},
+            {"id": "mistral", "object": "model"},   
         ]
     }

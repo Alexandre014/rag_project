@@ -8,7 +8,7 @@
 
 ### Launch openwebui:
 
-`open-webui server`
+`open-webui serve`
 use the port 8080 when installed with python
 
 ### How to use the OpenAI api :
