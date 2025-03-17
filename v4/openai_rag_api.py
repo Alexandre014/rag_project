@@ -40,12 +40,47 @@ def query_ollama(model, messages, ollama_server_url):
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Error querying Ollama: {e}")
 
+def format_response(request : OpenAIRequest, response):
+    return {
+        "id": "chatcmpl-xyz",
+        "object": "chat.completion",
+        "created": int(time.time()),
+        "model": request.model,
+        "choices": [{"message": {"role": "assistant", "content": response['message']['content']}}],
+        "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
+    }
+
+def base_prompt():
+    return(
+        "You are a French AI assistant answering questions based strictly on the provided documents. "
+        "Your response should be in French, concise, accurate, and directly relevant to the question. "
+        "If the documents do not contain enough information, say 'Je ne parviens pas à répondre à partir de ces documents.' "
+    )
+
+def generate_prompt(context, user_message):
+    prompt = (
+        base_prompt() +
+        "\n\n"
+        "### Documents:\n"
+        "{context}"
+        "\n\n"
+        "### Question:\n"
+        "{question}"
+    )
+    return prompt.format(context=context, question=user_message)
+    
+    
 @app.post("/v1/chat/completions")
 def openai_chat(request: OpenAIRequest):
     
     #first request : autocompletion
     #'content': '### Task:\nYou are an autocompletion system. Continue the text in `<text>` based on the **completion type** in `<type>` and the given language.
+    if ("### Task:" in request.messages[-1]['content'][:10]):#if the latest query is not a user query
+        print("Task")
+        return format_response(request, query_ollama(request.model, request.messages, request.ollama_server_url))
     
+    
+    print(request.messages)
     #second request : summarize the topic
     #'content': '### Task:\nGenerate a concise, 3-5 word title
     
@@ -80,35 +115,17 @@ def openai_chat(request: OpenAIRequest):
     # Format context
     context = " ".join([doc.page_content for doc in docs])
 
-    # Define the prompt
-    prompt = (
-        "You are a French AI assistant answering questions based strictly on the provided documents. "
-        "Your response should be in French, concise, accurate, and directly relevant to the question. "
-        "If the documents do not contain enough information, say 'Je ne parviens pas à répondre à partir de ces documents.' "
-        "\n\n"
-        "### Documents:\n"
-        "{context}"
-        "\n\n"
-        "### Question:\n"
-        "{question}"
-    )
 
     # Create conversation messages
-    messages = [{'role': 'user', 'content': prompt.format(context=context, question=user_message)}]
+    messages = [{'role': 'user', 'content': generate_prompt(context, user_message)}]
     print("MessagesPrompt", messages)
     # Query the LLM
-    response = query_ollama(request.model, messages, request.ollama_server_url)
+    llm_response = query_ollama(request.model, messages, request.ollama_server_url)
     
-    print(response['message']['content'])
+    print(llm_response['message']['content'])
+    
     # Format response in OpenAI format
-    return {
-        "id": "chatcmpl-xyz",
-        "object": "chat.completion",
-        "created": int(time.time()),
-        "model": request.model,
-        "choices": [{"message": {"role": "assistant", "content": response['message']['content']}}],
-        "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
-    }
+    return format_response(request, llm_response)
 
     
 @app.get("/v1/models")
