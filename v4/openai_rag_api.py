@@ -6,6 +6,7 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
 import os
 import time
+import re
 
 app = FastAPI()
 
@@ -73,22 +74,13 @@ def generate_prompt(context, user_message):
 @app.post("/v1/chat/completions")
 def openai_chat(request: OpenAIRequest):
     
-    #first request : autocompletion
-    #'content': '### Task:\nYou are an autocompletion system. Continue the text in `<text>` based on the **completion type** in `<type>` and the given language.
-    if ("### Task:" in request.messages[-1]['content'][:10]):#if the latest query is not a user query
+    #if the query is not a user query
+    if ("### Task:" in request.messages[-1]['content'][:10]):
         print("Task")
         return format_response(request, query_ollama(request.model, request.messages, request.ollama_server_url))
     
     
     print(request.messages)
-    #second request : summarize the topic
-    #'content': '### Task:\nGenerate a concise, 3-5 word title
-    
-    #third request : generate tags
-    #'content': '### Task:\nGenerate 1-3 broad tags
-    
-    #if request contains'tag' return ...
-    # if request contains'Generate a concise, 3-5 word title'
     
     print("REQUEST:", request)
     # Extract user question from messages
@@ -124,6 +116,11 @@ def openai_chat(request: OpenAIRequest):
     
     print(llm_response['message']['content'])
     
+    
+    #remove <think> from deepseek responses
+    if ("deepseek" in request.model):
+        llm_response['message']['content'] = re.sub(r"<think>.*?</think>\n?", "", llm_response['message']['content'], flags=re.DOTALL)
+        
     # Format response in OpenAI format
     return format_response(request, llm_response)
 

@@ -1,13 +1,18 @@
 import requests
 import csv
 import time
+import os
 
 API_URL = "http://127.0.0.1:8000/v1/chat/completions"
 QUESTIONS_FILE = "eval_questions.txt"
 MODEL_NAME = "mistral"
-CSV_OUTPUT = "./benchmarks/" + MODEL_NAME + "_benchmark_results.csv"
+CSV_OUTPUT = "./benchmarks/" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv"
 INDEX_PATH = "indexes/global_index"
 
+
+if os.path.exists(CSV_OUTPUT):
+    print("Benchmark canceled.")
+    raise Exception("This benchmark already exists")
 
 with open(QUESTIONS_FILE, "r", encoding="utf-8") as f:
     questions = [line.strip() for line in f.readlines() if line.strip()]
@@ -41,6 +46,10 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
 
         elapsed_time = round(time.time() - start_time, 2)
 
+        if("Error: HTTPConnectionPool" in answer):
+            raise Exception("API error")
+        
+        print(answer)
         #write to the csv file
         writer.writerow([question, answer, elapsed_time])
         print(f"Response received in {elapsed_time}s\n")

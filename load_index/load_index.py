@@ -77,3 +77,12 @@ def load_index_from_directory(directory_path, index_destination):
 
 
     return index_destination
+
+
+def main():
+    index_path = "indexes/global_index"
+    load_index_from_directory("data/pdf", index_path) #load the index only one time if you don't change the files
+    
+
+if __name__ == "__main__":
+    main()
