@@ -1,18 +1,9 @@
-import sys
 import os
 import asyncio
-import tkinter as tk
-from tkinter import filedialog
-from langchain.document_loaders import HuggingFaceDatasetLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
-from transformers import AutoTokenizer, AutoModelForQuestionAnswering
-from transformers import AutoTokenizer, pipeline
-from langchain import HuggingFacePipeline
-from langchain.chains import RetrievalQA
 from langchain_community.document_loaders import PyPDFLoader
-from transformers import AutoTokenizer, AutoModel, AutoModelForCausalLM
 
 def get_all_files_in_directory(directory_path, extension='.pdf'):
     file_paths = []

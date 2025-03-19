@@ -5,7 +5,7 @@ import os
 
 API_URL = "http://127.0.0.1:8000/v1/chat/completions"
 QUESTIONS_FILE = "eval_questions.txt"
-MODEL_NAME = "mistral"
+MODEL_NAME = "llama3.2"
 CSV_OUTPUT = "./benchmarks/" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv"
 INDEX_PATH = "indexes/global_index"
 

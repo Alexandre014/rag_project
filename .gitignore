@@ -2,3 +2,4 @@ venv/
 model/
 indexes/
 __pycache__/
+benchmarks/
