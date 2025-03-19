@@ -8,40 +8,46 @@ import os
 import time
 import re
 
-app = FastAPI()
+app = FastAPI() # FastAPI instance 
 
-# Define OpenAI-compatible request model
 class OpenAIRequest(BaseModel):
+    """Define OpenAI-compatible request"""
     model: str
     messages: list  # List of message history
     index_path: str = "indexes/global_index"
-    docs_max: int = 6
-    ollama_server_url: str = "https://tigre.loria.fr:11434/api/chat"
+    docs_max: int = 6 # maximum number of documents retrieved and used to generate an answer (documents not files)
+    ollama_server_url: str = "https://tigre.loria.fr:11434/api/chat" # choose your Ollama server, or localhost: http://127.0.0.1:11434/api/chat
 
-# Function to dynamically load an index
 def load_index(index_path):
+    """Function to dynamically load an index"""
+    
     if not os.path.exists(index_path):
         raise HTTPException(status_code=400, detail=f"Index not found at {index_path}")
 
-    model_path = "sentence-transformers/all-MiniLM-l6-v2"
+    # embedding
+    model_path = "sentence-transformers/all-MiniLM-l6-v2" 
     embeddings = HuggingFaceEmbeddings(model_name=model_path)
     
-    return FAISS.load_local(index_path, embeddings=embeddings, allow_dangerous_deserialization=True)
+    return FAISS.load_local(index_path, embeddings=embeddings, allow_dangerous_deserialization=True) # allow_dangerous_deserialization=True -> Warning : load trustworthy files
 
-# Function to query Ollama
 def query_ollama(model, messages, ollama_server_url):
+    """Function to query Ollama server"""
+    
     payload = {
         "model": model,
         "messages": messages,
-        "stream": False
+        "stream": False # False : to get the response in one shot
     }
     try:
         response = requests.post(ollama_server_url, json=payload)
         return response.json()
+    
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Error querying Ollama: {e}")
 
 def format_response(request : OpenAIRequest, response):
+    """format the API response into the OpenAI structure"""
+    
     return {
         "id": "chatcmpl-xyz",
         "object": "chat.completion",
@@ -73,17 +79,14 @@ def generate_prompt(context, user_message):
     
 @app.post("/v1/chat/completions")
 def openai_chat(request: OpenAIRequest):
+    """Respond to OpenAI chat queries"""
     
-    #if the query is not a user query
+    #if the query is not a user query (for specific Openwebui queries)
     if ("### Task:" in request.messages[-1]['content'][:10]):
-        print("Task")
+        # we just let Ollama respond
         return format_response(request, query_ollama(request.model, request.messages, request.ollama_server_url))
     
-    
-    print(request.messages)
-    
-    print("REQUEST:", request)
-    # Extract user question from messages
+    # Extract user question from messages, so the latest user message
     user_message = next((msg["content"] for msg in reversed(request.messages) if msg["role"] == "user"), None)
     if not user_message:
         raise HTTPException(status_code=400, detail="No user message found")
@@ -95,29 +98,20 @@ def openai_chat(request: OpenAIRequest):
     # Retrieve relevant documents
     docs = retriever.invoke(user_message)
     if not docs:
-        return {
-            "id": "chatcmpl-xyz",
-            "object": "chat.completion",
-            "created": int(time.time()),
-            "model": request.model,
-            "choices": [{"message": {"role": "assistant", "content": "Je ne parviens pas à répondre à partir de ces documents."}}],
-            "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
-        }
+        raise HTTPException(status_code=400, detail="No file found")
 
-    # Format context
+    # Concatenate documents
     context = " ".join([doc.page_content for doc in docs])
 
-
-    # Create conversation messages
-    messages = [{'role': 'user', 'content': generate_prompt(context, user_message)}]
-    print("MessagesPrompt", messages)
+    # Create Ollama query
+    ollama_query = [{'role': 'user', 'content': generate_prompt(context, user_message)}]
+    
     # Query the LLM
-    llm_response = query_ollama(request.model, messages, request.ollama_server_url)
+    llm_response = query_ollama(request.model, ollama_query, request.ollama_server_url)
+
+    print(f"Response : {llm_response['message']['content']}")
     
-    print(llm_response['message']['content'])
-    
-    
-    #remove <think> from deepseek responses
+    # Remove the "thinking" part from deepseek responses
     if ("deepseek" in request.model):
         llm_response['message']['content'] = re.sub(r"<think>.*?</think>\n?", "", llm_response['message']['content'], flags=re.DOTALL)
         
@@ -127,6 +121,7 @@ def openai_chat(request: OpenAIRequest):
     
 @app.get("/v1/models")
 def get_models():
+    """Return the available models list"""
     return {
         "object": "list",
         "data": [

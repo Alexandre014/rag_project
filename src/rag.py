@@ -9,8 +9,9 @@ OLLAMA_SERVER_URL = "https://tigre.loria.fr:11434/api/chat"
 
 docs_max = 6 #maximum number of documents retrieved and used to generate an answer (documents not files)
 
-"""send a query to Ollama server"""
 def query_ollama(model, messages):
+    """Send a query to Ollama server"""
+    
     payload = {
         "model": model,
         "messages": [{"role": message['role'], "content": str(message['content'])} for message in messages],
@@ -25,8 +26,8 @@ def query_ollama(model, messages):
         return "Error while generating the response."
 
 
-"""launch the rag on a specified index"""
 def launch_rag(index_location, generation_model="llama3.2" ):
+    """Launch the rag on a specified index"""
 
     """step 1 : load embedding"""
 

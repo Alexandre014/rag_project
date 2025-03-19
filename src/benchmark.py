@@ -3,21 +3,22 @@ import csv
 import time
 import os
 
-API_URL = "http://127.0.0.1:8000/v1/chat/completions"
+API_URL = "http://127.0.0.1:8000/v1/chat/completions" #the RAG API url
 QUESTIONS_FILE = "eval_questions.txt"
-MODEL_NAME = "llama3.2"
-CSV_OUTPUT = "./benchmarks/" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv"
-INDEX_PATH = "indexes/global_index"
+MODEL_NAME = "llama3.2" # model used for the tests
+CSV_OUTPUT = "./benchmarks/" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
+INDEX_PATH = "indexes/global_index" # index storing the documents
 
-
+# if the file name is already used
 if os.path.exists(CSV_OUTPUT):
     print("Benchmark canceled.")
     raise Exception("This benchmark already exists")
 
+# Retrieve questions
 with open(QUESTIONS_FILE, "r", encoding="utf-8") as f:
     questions = [line.strip() for line in f.readlines() if line.strip()]
 
-
+# Generate benchmark
 with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
     writer = csv.writer(csvfile)
     writer.writerow(["Question", "Response", "Response time (s)"])
@@ -25,6 +26,7 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
     for question in questions:
         print(f"Sending question : {question}")
 
+        # Model configuration
         request_data = {
             "model": MODEL_NAME,
             "messages": [{"role": "user", "content": question}],
@@ -36,7 +38,7 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
         start_time = time.time()
 
         try:
-            #send the request
+            # send the request
             response = requests.post(API_URL, json=request_data)
             response.raise_for_status()
             result = response.json()
@@ -50,6 +52,7 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
             raise Exception("API error")
         
         print(answer)
+        
         #write to the csv file
         writer.writerow([question, answer, elapsed_time])
         print(f"Response received in {elapsed_time}s\n")
