@@ -6,6 +6,7 @@ from langchain.vectorstores import FAISS
 from langchain_community.document_loaders import PyPDFLoader
 
 def get_all_files_in_directory(directory_path, extension='.pdf'):
+    """Get the path of all files in a directory"""
     file_paths = []
     for root, _, files in os.walk(directory_path):
         for file in files:
@@ -21,14 +22,14 @@ async def load_pages(loader):
     return pages
 
 
-"""load files from a directory as an index and store it at a specified location"""
 def load_index_from_directory(directory_path, index_destination):
-
+    """load files from a directory as an index and store it at a specified location"""
     all_pages = []
 
+    # Get the paths
     file_paths_list = get_all_files_in_directory(directory_path)
 
-
+    # Load documents
     for file_path in file_paths_list:
             loader = PyPDFLoader(file_path)
             try:
@@ -39,20 +40,13 @@ def load_index_from_directory(directory_path, index_destination):
                 print(f"Error loading {file_path}: {e}")
                 continue
 
-
-
+    # Data splitting
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
-
     docs = text_splitter.split_documents(all_pages)
-
-    # model for retrieving
-    modelPath = "sentence-transformers/all-MiniLM-l6-v2"
-
-    # Create a dictionary with model configuration options, specifying to use the CPU for computations
-    model_kwargs = {'device':'cpu'}
-
-    # Create a dictionary with encoding options, specifically setting 'normalize_embeddings' to False
-    encode_kwargs = {'normalize_embeddings': False}
+    
+    modelPath = "sentence-transformers/all-MiniLM-l6-v2" # model for retrieving
+    model_kwargs = {'device':'cpu'} # model configuration options
+    encode_kwargs = {'normalize_embeddings': False} # encoding options
 
     # Initialize an instance of HuggingFaceEmbeddings with the specified parameters
     embeddings = HuggingFaceEmbeddings(
@@ -61,11 +55,9 @@ def load_index_from_directory(directory_path, index_destination):
         encode_kwargs=encode_kwargs # Pass the encoding options
     )
 
-
     #vector store
     db = FAISS.from_documents(docs, embeddings)
     db.save_local(index_destination)
-
 
     return index_destination
 
