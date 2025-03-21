@@ -8,7 +8,7 @@ API_URL = "http://127.0.0.1:8000/v1/chat/completions" #the RAG API url
 MODEL_NAME = "llama3.2" # model used for the tests
 CSV_OUTPUT = "./benchmarks/piaf_" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
 INDEX_PATH = "indexes/piaf_index" # index storing the documents
-
+QUESTIONS_AMOUNT = 20
 
 
 # if the file name is already used
@@ -17,7 +17,7 @@ if os.path.exists(CSV_OUTPUT):
     raise Exception("This benchmark already exists")
 
 dataset = load_dataset("AgentPublic/piaf", "plain_text", split="train")
-dataset = dataset.select(range(5))
+dataset = dataset.select(range(QUESTIONS_AMOUNT))
 
 # Generate benchmark
 with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:

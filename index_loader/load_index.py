@@ -4,7 +4,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
 from langchain_community.document_loaders import PyPDFLoader
-from langchain.document_loaders import HuggingFaceDatasetLoader
+from langchain_community.document_loaders import HuggingFaceDatasetLoader
 
 def get_all_files_in_directory(directory_path, extension='.pdf'):
     """Get the path of all files in a directory"""
@@ -70,7 +70,22 @@ def load_index_from_dataset(dataset_name, data_column, index_destination):
     
     loader = HuggingFaceDatasetLoader(dataset_name, data_column)
     data = loader.load() # Load the data
-    unique_data = list({doc.page_content: doc for doc in data}.values())
+    #print(data[0].page_content)
+    #here i want to reduce data amount
+    #data = data[:1000]
+    
+    # We keep each value only once
+    #unique_data = list({doc.page_content: doc for doc in data}.values())
+    unique_dict = {}  # Dictionnaire pour stocker les documents uniques
+    for doc in data:
+        unique_dict[doc.page_content] = doc
+        unique_dict[doc.page_content].page_content += " titre : " + unique_dict[doc.page_content].metadata['title'] +";"
+        
+    unique_data = list(unique_dict.values()) 
+    
+    unique_data = data[:100]
+    print(data[0])
+    print(len(unique_data))
     embed_data(unique_data, index_destination) 
     
         

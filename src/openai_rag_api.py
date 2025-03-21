@@ -2,7 +2,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import requests
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
 import os
 import time
@@ -14,7 +14,7 @@ class OpenAIRequest(BaseModel):
     """Define OpenAI-compatible request"""
     model: str
     messages: list  # List of message history
-    index_path: str = "indexes/global_index"
+    index_path: str = "indexes/piaf_index"
     docs_max: int = 6 # maximum number of documents retrieved and used to generate an answer (documents not files)
     ollama_server_url: str = "https://tigre.loria.fr:11434/api/chat" # choose your Ollama server, or localhost: http://127.0.0.1:11434/api/chat
 
@@ -100,6 +100,8 @@ def openai_chat(request: OpenAIRequest):
     if not docs:
         raise HTTPException(status_code=400, detail="No file found")
 
+    print(docs)
+    
     # Concatenate documents
     context = " ".join([doc.page_content for doc in docs])
 
