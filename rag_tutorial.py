@@ -17,7 +17,7 @@ def err_remove(er):
     return Answer
 
 # Specify the dataset name and the column containing the content
-dataset_name = "databricks/databricks-dolly-15k"
+dataset_name = "AgentPublic/piaf"
 page_content_column = "context"  # or any other column you're interested in
 
 # Create a loader instance
@@ -118,7 +118,7 @@ retriever = db.as_retriever(search_kwargs={"k": 4})
 # It's configured with a language model (llm), a chain type "refine," the retriever we created, and an option to not return source documents.
 qa = RetrievalQA.from_chain_type(llm=llm, chain_type="refine", retriever=retriever, return_source_documents=False)
 
-question = "Who is Thomas Jefferson?"
+question = "Qui est Nicolaus Thomas?"
 
 
 try:

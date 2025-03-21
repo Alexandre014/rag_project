@@ -4,6 +4,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
 from langchain_community.document_loaders import PyPDFLoader
+from langchain.document_loaders import HuggingFaceDatasetLoader
 
 def get_all_files_in_directory(directory_path, extension='.pdf'):
     """Get the path of all files in a directory"""
@@ -22,8 +23,30 @@ async def load_pages(loader):
     return pages
 
 
+def embed_data(data, index_destination):
+    """Embed the data and create an index"""
+      # Data splitting
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
+    docs = text_splitter.split_documents(data)
+    
+    # Define the retrieving configuration for later
+    modelPath = "sentence-transformers/all-MiniLM-l6-v2" # model for retrieving
+    model_kwargs = {'device':'cpu'} # model configuration options
+    encode_kwargs = {'normalize_embeddings': False} # encoding options
+
+    # Initialize an instance of HuggingFaceEmbeddings with the specified parameters
+    embeddings = HuggingFaceEmbeddings(
+        model_name=modelPath,     # Provide the pre-trained model's path
+        model_kwargs=model_kwargs, # Pass the model configuration options
+        encode_kwargs=encode_kwargs # Pass the encoding options
+    )
+
+    #vector store
+    db = FAISS.from_documents(docs, embeddings)
+    db.save_local(index_destination)
+
 def load_index_from_directory(directory_path, index_destination):
-    """load files from a directory as an index and store it at a specified location"""
+    """Load files from a directory as an index and store it at a specified location"""
     all_pages = []
 
     # Get the paths
@@ -40,27 +63,17 @@ def load_index_from_directory(directory_path, index_destination):
                 print(f"Error loading {file_path}: {e}")
                 continue
 
-    # Data splitting
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
-    docs = text_splitter.split_documents(all_pages)
+    embed_data(all_pages, index_destination)
+
+def load_index_from_dataset(dataset_name, data_column, index_destination):
+    """Load a dataset as an index and store it at a specified location"""
     
-    modelPath = "sentence-transformers/all-MiniLM-l6-v2" # model for retrieving
-    model_kwargs = {'device':'cpu'} # model configuration options
-    encode_kwargs = {'normalize_embeddings': False} # encoding options
-
-    # Initialize an instance of HuggingFaceEmbeddings with the specified parameters
-    embeddings = HuggingFaceEmbeddings(
-        model_name=modelPath,     # Provide the pre-trained model's path
-        model_kwargs=model_kwargs, # Pass the model configuration options
-        encode_kwargs=encode_kwargs # Pass the encoding options
-    )
-
-    #vector store
-    db = FAISS.from_documents(docs, embeddings)
-    db.save_local(index_destination)
-
-    return index_destination
-
+    loader = HuggingFaceDatasetLoader(dataset_name, data_column)
+    data = loader.load() # Load the data
+    unique_data = list({doc.page_content: doc for doc in data}.values())
+    embed_data(unique_data, index_destination) 
+    
+        
 
 def main():
     index_path = "indexes/global_index"
