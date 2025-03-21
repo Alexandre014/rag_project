@@ -2,28 +2,29 @@ import requests
 import csv
 import time
 import os
+from datasets import load_dataset
 
 API_URL = "http://127.0.0.1:8000/v1/chat/completions" #the RAG API url
-QUESTIONS_FILE = "eval_questions.txt"
 MODEL_NAME = "llama3.2" # model used for the tests
-CSV_OUTPUT = "./benchmarks/" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
-INDEX_PATH = "indexes/global_index" # index storing the documents
+CSV_OUTPUT = "./benchmarks/piaf_" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
+INDEX_PATH = "indexes/piaf_index" # index storing the documents
+
+
 
 # if the file name is already used
 if os.path.exists(CSV_OUTPUT):
     print("Benchmark canceled.")
     raise Exception("This benchmark already exists")
 
-# Retrieve questions
-with open(QUESTIONS_FILE, "r", encoding="utf-8") as f:
-    questions = [line.strip() for line in f.readlines() if line.strip()]
+dataset = load_dataset("AgentPublic/piaf", "plain_text", split="train")
+dataset = dataset.select(range(5))
 
 # Generate benchmark
 with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
     writer = csv.writer(csvfile)
     writer.writerow(["Question", "Response", "Response time (s)"])
 
-    for question in questions:
+    for question in dataset['question']:
         print(f"Sending question : {question}")
 
         # Model configuration

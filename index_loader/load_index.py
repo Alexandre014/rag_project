@@ -77,8 +77,9 @@ def load_index_from_dataset(dataset_name, data_column, index_destination):
 
 def main():
     index_path = "indexes/global_index"
-    load_index_from_directory("data/pdf", index_path) #load the index only one time if you don't change the files
-    
+    #load_index_from_directory("data/pdf", index_path) #load the index only one time if you don't change the files
+    index_path = "indexes/piaf_index"
+    load_index_from_dataset("AgentPublic/piaf", "context", index_path)
 
 if __name__ == "__main__":
     main()
