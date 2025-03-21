@@ -49,7 +49,7 @@ To do it only once, when you don't want to change the documents.
 ### 2️⃣ Start API Server
 
 Run the FastAPI server:
-`uvicorn app:app --host 0.0.0.0 --port 8000`
+`uvicorn src.openai_rag_api:app --host 0.0.0.0 --port 8000`
 
 ### 3️⃣ Query API
 
