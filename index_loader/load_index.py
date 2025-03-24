@@ -76,14 +76,14 @@ def load_index_from_dataset(dataset_name, data_column, index_destination):
     
     # We keep each value only once
     #unique_data = list({doc.page_content: doc for doc in data}.values())
-    unique_dict = {}  # Dictionnaire pour stocker les documents uniques
+    unique_dict = {}
     for doc in data:
         unique_dict[doc.page_content] = doc
-        unique_dict[doc.page_content].page_content += " titre : " + unique_dict[doc.page_content].metadata['title'] +";"
+        unique_dict[doc.page_content].page_content += " titre : " + unique_dict[doc.page_content].metadata.get('title', 'No Title') +";"
         
     unique_data = list(unique_dict.values()) 
     
-    unique_data = data[:100]
+    #unique_data = data[:100]
     print(data[0])
     print(len(unique_data))
     embed_data(unique_data, index_destination) 

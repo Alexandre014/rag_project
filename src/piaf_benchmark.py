@@ -16,6 +16,7 @@ if os.path.exists(CSV_OUTPUT):
     print("Benchmark canceled.")
     raise Exception("This benchmark already exists")
 
+# to retrieve questions
 dataset = load_dataset("AgentPublic/piaf", "plain_text", split="train")
 dataset = dataset.select(range(QUESTIONS_AMOUNT))
 
@@ -27,7 +28,7 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
     for question in dataset['question']:
         print(f"Sending question : {question}")
 
-        # Model configuration
+        # retrieving model configuration
         request_data = {
             "model": MODEL_NAME,
             "messages": [{"role": "user", "content": question}],

@@ -17,7 +17,7 @@ def err_remove(er):
     return Answer
 
 # Specify the dataset name and the column containing the content
-dataset_name = "AgentPublic/piaf"
+dataset_name = "databricks-dolly-15k"
 page_content_column = "context"  # or any other column you're interested in
 
 # Create a loader instance

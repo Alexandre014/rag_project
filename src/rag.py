@@ -1,6 +1,6 @@
 import os
 import requests
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
 
 # choose the server you want to use 
