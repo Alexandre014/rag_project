@@ -1,4 +1,4 @@
-
+import asyncio
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import requests
@@ -7,6 +7,11 @@ from langchain_community.vectorstores import FAISS
 import os
 import time
 import re
+from ragas import SingleTurnSample 
+from ragas.metrics import ResponseRelevancy
+from langchain_community.llms import HuggingFacePipeline
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+from langchain_community.llms import Ollama
 
 app = FastAPI() # FastAPI instance 
 
@@ -14,7 +19,7 @@ class OpenAIRequest(BaseModel):
     """Define OpenAI-compatible request"""
     model: str
     messages: list  # List of message history
-    index_path: str = "indexes/piaf_index"
+    index_path: str = "indexes/piaf_100_index"
     docs_max: int = 6 # maximum number of documents retrieved and used to generate an answer (documents not files)
     ollama_server_url: str = "https://tigre.loria.fr:11434/api/chat" # choose your Ollama server, or localhost: http://127.0.0.1:11434/api/chat
 
@@ -75,8 +80,11 @@ def generate_prompt(context, user_message):
         "{question}"
     )
     return prompt.format(context=context, question=user_message)
-    
-    
+
+async def evaluate_relevancy(scorer, sample):
+    score = await scorer.single_turn_ascore(sample)
+    print(f"The relevancy score is: {score}")
+
 @app.post("/v1/chat/completions")
 def openai_chat(request: OpenAIRequest):
     """Respond to OpenAI chat queries"""
@@ -117,6 +125,31 @@ def openai_chat(request: OpenAIRequest):
     if ("deepseek" in request.model):
         llm_response['message']['content'] = re.sub(r"<think>.*?</think>\n?", "", llm_response['message']['content'], flags=re.DOTALL)
         
+        
+    sample = SingleTurnSample(
+        user_input=user_message,
+        response=llm_response['message']['content'],
+        retrieved_contexts=[
+            context
+        ]
+    )
+
+    # evaluator_model = "mistralai/Mistral-7B-Instruct-v0.3"
+    # tokenizer = AutoTokenizer.from_pretrained(evaluator_model)
+    # evaluator_llm = AutoModelForCausalLM.from_pretrained(evaluator_model)
+    # pipe = pipeline("text-generation", model=evaluator_model, tokenizer=tokenizer)
+    # evaluator_llm = HuggingFacePipeline(pipeline=pipe)
+    
+    
+    evaluator_llm = Ollama(model="mistral", base_url=request.ollama_server_url)
+    
+    scorer = ResponseRelevancy(llm=evaluator_llm, embeddings=embeddings)
+   
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    
+    scorer = ResponseRelevancy(llm=evaluator_llm, embeddings=embeddings)
+    asyncio.run(evaluate_relevancy(scorer, sample))
+    
     # Format response in OpenAI format
     return format_response(request, llm_response)
 

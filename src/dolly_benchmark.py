@@ -5,9 +5,9 @@ import os
 from datasets import load_dataset
 
 API_URL = "http://127.0.0.1:8000/v1/chat/completions" #the RAG API url
-MODEL_NAME = "mistral" # model used for the tests
-CSV_OUTPUT = "./benchmarks/piaf_" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
-INDEX_PATH = "indexes/piaf_Full_index" # index storing the documents
+MODEL_NAME = "llama3.2" # model used for the tests
+CSV_OUTPUT = "./benchmarks/dolly_" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
+INDEX_PATH = "indexes/dolly_Raw_index" # index storing the documents
 QUESTIONS_AMOUNT = 20
 
 
@@ -17,7 +17,7 @@ if os.path.exists(CSV_OUTPUT):
     raise Exception("This benchmark already exists")
 
 # to retrieve questions
-dataset = load_dataset("AgentPublic/piaf", "plain_text", split="train")
+dataset = load_dataset("databricks/databricks-dolly-15k", split="train")
 dataset = dataset.select(range(QUESTIONS_AMOUNT))
 
 # Generate benchmark
@@ -25,7 +25,7 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
     writer = csv.writer(csvfile)
     writer.writerow(["Question", "Response", "Response time (s)"])
 
-    for question in dataset['question']:
+    for question in dataset['instruction']:
         print(f"Sending question : {question}")
 
         # retrieving model configuration

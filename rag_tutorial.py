@@ -1,8 +1,8 @@
 import sys
-from langchain.document_loaders import HuggingFaceDatasetLoader
+from langchain_community.document_loaders import HuggingFaceDatasetLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community .vectorstores import FAISS
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering
 from transformers import AutoTokenizer, pipeline
 from langchain import HuggingFacePipeline
@@ -17,7 +17,7 @@ def err_remove(er):
     return Answer
 
 # Specify the dataset name and the column containing the content
-dataset_name = "databricks-dolly-15k"
+dataset_name = "databricks/databricks-dolly-15k"
 page_content_column = "context"  # or any other column you're interested in
 
 # Create a loader instance
@@ -61,8 +61,10 @@ query_result = embeddings.embed_query(text)
 
 
 #vector store
-db = FAISS.from_documents(docs, embeddings)
+#db = FAISS.from_documents(docs, embeddings)
 #use save_local() and load_local() to save the vector as an index
+#db.save_local("indexes/dolly_qa")
+db = FAISS.load_local("indexes/dolly_index", embeddings, allow_dangerous_deserialization=True)
 
 #example
 question = "What is cheesemaking?"
@@ -118,7 +120,7 @@ retriever = db.as_retriever(search_kwargs={"k": 4})
 # It's configured with a language model (llm), a chain type "refine," the retriever we created, and an option to not return source documents.
 qa = RetrievalQA.from_chain_type(llm=llm, chain_type="refine", retriever=retriever, return_source_documents=False)
 
-question = "Qui est Nicolaus Thomas?"
+question = "When was Tomoaki Komorida born?"
 
 
 try:

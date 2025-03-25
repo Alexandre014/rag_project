@@ -1,7 +1,19 @@
 import os
+import sys
 import requests
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
+from langchain import HuggingFacePipeline
+from langchain.chains import RetrievalQA
+from transformers import AutoTokenizer, pipeline
+
+def err_remove(er):
+    lin = "------------"
+    er = str(er)
+    start_index = er.find(lin) + len(lin)
+    end_index = er.rfind(lin)
+    Answer = er[start_index:end_index].strip()
+    return Answer
 
 # choose the server you want to use 
 #OLLAMA_SERVER_URL = "http://127.0.0.1:11434/api/chat"
@@ -68,10 +80,43 @@ def launch_rag(index_location, generation_model="llama3.2" ):
 
     conversation=[]
 
+    # Specify the model name you want to use
+    model_name = "Intel/dynamic_tinybert"
+
+    # Load the tokenizer associated with the specified model
+    tokenizer = AutoTokenizer.from_pretrained(model_name, padding=True, truncation=True, max_length=512)
+
+    
+    question_answerer = pipeline(
+        "question-answering", 
+        model=model_name, 
+        tokenizer=tokenizer,
+        return_tensors='pt'
+    )
+    
+    llm = HuggingFacePipeline(
+        pipeline=question_answerer,
+        model_kwargs={"temperature": 0.7, "max_length": 512},
+    )
+    
     while question != "quit":
         
-        docs = retriever.invoke(question) # retrieved documents 
-        context = " ".join([doc.page_content for doc in docs])  # concatenate documents
+        #docs = retriever.invoke(question) # retrieved documents 
+        
+        qa = RetrievalQA.from_chain_type(llm=llm, chain_type="refine", retriever=retriever, return_source_documents=False)
+        
+        
+        try:
+            #result = qa.invoke({"query": question})
+            #result["result"]
+            result = qa.invoke({"query": question})
+            context = result["result"]
+            
+        except:
+            error = sys.exc_info()
+            context = err_remove(error)
+
+        #context = " ".join([doc.page_content for doc in docs])  # concatenate documents
         
         print(context)
         
@@ -82,11 +127,11 @@ def launch_rag(index_location, generation_model="llama3.2" ):
         
         conversation.append({'role': 'assistant', 'content': response})
         
-        # display source documents used to answer (file name + page number)
-        if docs and ('source' in docs[0].metadata):
-            print("\nLa réponse a été générée à partir des ", len(docs), " documents suivants : ")
-            for doc in docs:
-                print(os.path.basename(doc.metadata['source']), ": page", doc.metadata['page_label'])
+        # # display source documents used to answer (file name + page number)
+        # if docs and ('source' in docs[0].metadata):
+        #     print("\nLa réponse a été générée à partir des ", len(docs), " documents suivants : ")
+        #     for doc in docs:
+        #         print(os.path.basename(doc.metadata['source']), ": page", doc.metadata['page_label'])
             
         print(f"\nUse 'quit' to stop\n")
         question = input("Posez votre question : ")
@@ -95,7 +140,7 @@ def launch_rag(index_location, generation_model="llama3.2" ):
 
 
 def main():
-    index_path = "indexes/dolly_Raw_index" 
+    index_path = "indexes/global_index" 
     launch_rag(index_path, "mistral")
 
 if __name__ == "__main__":

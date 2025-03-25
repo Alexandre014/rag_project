@@ -1,8 +1,8 @@
 import os
 import asyncio
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_loaders import HuggingFaceDatasetLoader
 
@@ -70,6 +70,7 @@ def load_index_from_dataset(dataset_name, data_column, index_destination):
     
     loader = HuggingFaceDatasetLoader(dataset_name, data_column)
     data = loader.load() # Load the data
+    
     #print(data[0].page_content)
     #here i want to reduce data amount
     #data = data[:1000]
@@ -79,7 +80,7 @@ def load_index_from_dataset(dataset_name, data_column, index_destination):
     unique_dict = {}
     for doc in data:
         unique_dict[doc.page_content] = doc
-        unique_dict[doc.page_content].page_content += " titre : " + unique_dict[doc.page_content].metadata.get('title', 'No Title') +";"
+        unique_dict[doc.page_content].page_content += " title : " + unique_dict[doc.page_content].metadata.get('title', 'No Title') +";"
         
     unique_data = list(unique_dict.values()) 
     
