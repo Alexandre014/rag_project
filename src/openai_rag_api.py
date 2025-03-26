@@ -11,7 +11,8 @@ from ragas import SingleTurnSample
 from ragas.metrics import ResponseRelevancy
 from langchain_community.llms import HuggingFacePipeline
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-from langchain_community.llms import Ollama
+from langchain_community.chat_models import ChatOllama
+from langchain_community.embeddings import OllamaEmbeddings
 
 app = FastAPI() # FastAPI instance 
 
@@ -136,17 +137,16 @@ def openai_chat(request: OpenAIRequest):
 
     # evaluator_model = "mistralai/Mistral-7B-Instruct-v0.3"
     # tokenizer = AutoTokenizer.from_pretrained(evaluator_model)
-    # evaluator_llm = AutoModelForCausalLM.from_pretrained(evaluator_model)
+    # evaluator_llm = AutoModelForCausalLM.from_pretrained(evaluator_model, low_cpu_mem_usage=True, local_files_only=True, device_map="auto",  trust_remote_code=True)
     # pipe = pipeline("text-generation", model=evaluator_model, tokenizer=tokenizer)
     # evaluator_llm = HuggingFacePipeline(pipeline=pipe)
     
+    #embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     
-    evaluator_llm = Ollama(model="mistral", base_url=request.ollama_server_url)
-    
-    scorer = ResponseRelevancy(llm=evaluator_llm, embeddings=embeddings)
+    # evaluator_llm = Ollama(model="mistral", base_url=request.ollama_server_url)
+    evaluator_llm = ChatOllama(model="llama3")
+    embeddings = OllamaEmbeddings(model="llama3")
    
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    
     scorer = ResponseRelevancy(llm=evaluator_llm, embeddings=embeddings)
     asyncio.run(evaluate_relevancy(scorer, sample))
     
