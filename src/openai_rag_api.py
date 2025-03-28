@@ -81,13 +81,22 @@ def rag_prompt():
         "If the documents do not contain enough information, say 'Je ne parviens pas à répondre à partir de ces documents.' "
     )
 def dataset_prompt():
-    return(
-        "You are a french AI assistant answering questions based strictly on the provided documents. "
-        "Your response should be a small chunk (one word or a string of words) of the document, answering directly to the question. Do not generate something by yourself"
-        "The answer should be as short as possible."
-        "For example : (Question: Quelle est la position de la marine indienne en termes d'effectifs à l'échelle mondiale ? Response: quatrième), (Question: Combien la marine indienne a-t-elle de porte-avions en service ? Response: un), (Question: Quel est l'effet de l'acide fusidique ? Response: bloquent par exemple la translocation), (Question: Quels organismes sont surtout concernés par le blocage de la traduction ? Response: les bactéries)"
-        "Do not give the document title"
-    ) 
+    return (
+        "You are a French AI assistant tasked with answering questions strictly based on the provided documents. "
+        "Your response must be an exact excerpt from the document—a word or a short phrase—without any modification or additional generation. "
+        "The answer should be as concise as possible."
+        "\n\n"
+        "Examples:\n"
+        "- Question: Quelle est la position de la marine indienne en termes d'effectifs à l'échelle mondiale ?\n"
+        "  Response: quatrième\n"
+        "- Question: Combien la marine indienne a-t-elle de porte-avions en service ?\n"
+        "  Response: un\n"
+        "- Question: Quel est l'effet de l'acide fusidique ?\n"
+        "  Response: bloquent par exemple la translocation\n"
+        "- Question: Quels organismes sont surtout concernés par le blocage de la traduction ?\n"
+        "  Response: les bactéries\n\n"
+        "Do not include the document title in your response."
+    )
     
 
 def generate_prompt(context, user_message, evaluation_prompt=False):
