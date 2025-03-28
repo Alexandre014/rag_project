@@ -23,6 +23,7 @@ from gensim.models import TfidfModel
 import gensim.downloader as api
 from gensim.similarities import SparseTermSimilarityMatrix, WordEmbeddingSimilarityIndex
 
+from sentence_transformers import SentenceTransformer, util
 
 app = FastAPI() # FastAPI instance 
 
@@ -101,7 +102,7 @@ def generate_prompt(context, user_message):
     )
     return prompt.format(context=context, question=user_message)
 
-def evaluate_answer_quality(generated_answer, expected_answer):
+def evaluate_answer_quality_gensim(generated_answer, expected_answer):
     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
     
     # Import and download stopwords from NLTK.
@@ -133,6 +134,17 @@ def evaluate_answer_quality(generated_answer, expected_answer):
 
     similarity = termsim_matrix.inner_product(generated_answer, expected_answer, normalized=(True, True))
     return 'similarity = %.4f' % similarity
+
+def evaluate_answer_quality_camembert(generated_answer, expected_answer):
+    model = SentenceTransformer("dangvantuan/sentence-camembert-base")
+
+    embedding1 = model.encode(generated_answer, convert_to_tensor=True)
+    embedding2 = model.encode(expected_answer, convert_to_tensor=True)
+
+    similarity_score = util.pytorch_cos_sim(embedding1, embedding2)
+
+    return 'similarity = %.4f' % similarity_score.item()
+
 
 @app.post("/v1/chat/completions")
 def openai_chat(request: OpenAIRequest):

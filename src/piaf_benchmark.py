@@ -59,7 +59,7 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
         
         print("Expected answer : ", expected_answer["text"][0])
         # evaluate the answer quality
-        answer_quality = openai_rag_api.evaluate_answer_quality(answer, expected_answer["text"][0]) 
+        answer_quality = openai_rag_api.evaluate_answer_quality_camembert(answer, expected_answer["text"][0]) 
         print(answer_quality)
     
         
