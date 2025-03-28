@@ -3,13 +3,15 @@ import csv
 import time
 import os
 from datasets import load_dataset
-
+import openai_rag_api
 API_URL = "http://127.0.0.1:8000/v1/chat/completions" #the RAG API url
 MODEL_NAME = "mistral" # model used for the tests
 CSV_OUTPUT = "./benchmarks/piaf_" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
-INDEX_PATH = "indexes/piaf_Full_index" # index storing the documents
-QUESTIONS_AMOUNT = 20
+INDEX_PATH = "indexes/datasets/piaf_100_index" # index storing the documents
+QUESTIONS_AMOUNT = 5
 
+DATASET_NAME = "AgentPublic/piaf"
+EXPECTED_ANSWER_COLUMN = "answers"
 
 # if the file name is already used
 if os.path.exists(CSV_OUTPUT):
@@ -23,9 +25,9 @@ dataset = dataset.select(range(QUESTIONS_AMOUNT))
 # Generate benchmark
 with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
     writer = csv.writer(csvfile)
-    writer.writerow(["Question", "Response", "Response time (s)"])
+    writer.writerow(["Question", "Response", "Response time (s)", "Answer quality"])
 
-    for question in dataset['question']:
+    for question, expected_answer in zip(dataset['question'], dataset[EXPECTED_ANSWER_COLUMN]):
         print(f"Sending question : {question}")
 
         # retrieving model configuration
@@ -55,8 +57,14 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
         
         print(answer)
         
+        print("Expected answer : ", expected_answer["text"][0])
+        # evaluate the answer quality
+        answer_quality = openai_rag_api.evaluate_answer_quality(answer, expected_answer["text"][0]) 
+        print(answer_quality)
+    
+        
         #write to the csv file
-        writer.writerow([question, answer, elapsed_time])
+        writer.writerow([question, answer, elapsed_time, answer_quality])
         print(f"Response received in {elapsed_time}s\n")
 
 print(f"Benchmark completed.")

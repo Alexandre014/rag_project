@@ -14,13 +14,23 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from langchain_community.chat_models import ChatOllama
 from langchain_community.embeddings import OllamaEmbeddings
 
+# evalution imports
+import logging
+from nltk.corpus import stopwords
+from nltk import download
+from gensim.corpora import Dictionary
+from gensim.models import TfidfModel
+import gensim.downloader as api
+from gensim.similarities import SparseTermSimilarityMatrix, WordEmbeddingSimilarityIndex
+
+
 app = FastAPI() # FastAPI instance 
 
 class OpenAIRequest(BaseModel):
     """Define OpenAI-compatible request"""
     model: str
     messages: list  # List of message history
-    index_path: str = "indexes/piaf_100_index"
+    index_path: str = "indexes/datasets/piaf_100_index"
     docs_max: int = 6 # maximum number of documents retrieved and used to generate an answer (documents not files)
     ollama_server_url: str = "https://tigre.loria.fr:11434/api/chat" # choose your Ollama server, or localhost: http://127.0.0.1:11434/api/chat
 
@@ -69,10 +79,19 @@ def base_prompt():
         "Your response should be in French, concise, accurate, and directly relevant to the question. "
         "If the documents do not contain enough information, say 'Je ne parviens pas à répondre à partir de ces documents.' "
     )
+def qa_prompt():
+    return(
+        "You are a french AI assistant answering questions based strictly on the provided documents. "
+        "Your response should be a small chunk (one word or a string of words) of the document, answering directly to the question. Do not generate something by yourself"
+        "The answer should be as short as possible."
+        "For example : (Question: Quelle est la position de la marine indienne en termes d'effectifs à l'échelle mondiale ? Response: quatrième), (Question: Combien la marine indienne a-t-elle de porte-avions en service ? Response: un), (Question: Quel est l'effet de l'acide fusidique ? Response: bloquent par exemple la translocation), (Question: Quels organismes sont surtout concernés par le blocage de la traduction ? Response: les bactéries)"
+        "Do not give the document title"
+    ) 
+    
 
 def generate_prompt(context, user_message):
     prompt = (
-        base_prompt() +
+        qa_prompt() +
         "\n\n"
         "### Documents:\n"
         "{context}"
@@ -82,9 +101,38 @@ def generate_prompt(context, user_message):
     )
     return prompt.format(context=context, question=user_message)
 
-async def evaluate_relevancy(scorer, sample):
-    score = await scorer.single_turn_ascore(sample)
-    print(f"The relevancy score is: {score}")
+def evaluate_answer_quality(generated_answer, expected_answer):
+    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+    
+    # Import and download stopwords from NLTK.
+    download('stopwords')  # Download stopwords list.
+    stop_words = stopwords.words('english')
+
+    def preprocess(sentence):
+        return [w for w in sentence.lower().split() if w not in stop_words]
+
+    generated_answer = preprocess(generated_answer)
+    expected_answer = preprocess(expected_answer)
+
+    documents = [generated_answer, expected_answer]
+    dictionary = Dictionary(documents)
+
+    generated_answer = dictionary.doc2bow(generated_answer)
+    expected_answer = dictionary.doc2bow(expected_answer)
+
+    documents = [generated_answer, expected_answer]
+    tfidf = TfidfModel(documents)
+
+    # generated_answer = tfidf[generated_answer]
+    # expected_answer = tfidf[expected_answer]
+
+    model = api.load('word2vec-google-news-300')
+
+    termsim_index = WordEmbeddingSimilarityIndex(model)
+    termsim_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary, tfidf)
+
+    similarity = termsim_matrix.inner_product(generated_answer, expected_answer, normalized=(True, True))
+    return 'similarity = %.4f' % similarity
 
 @app.post("/v1/chat/completions")
 def openai_chat(request: OpenAIRequest):
@@ -126,29 +174,6 @@ def openai_chat(request: OpenAIRequest):
     if ("deepseek" in request.model):
         llm_response['message']['content'] = re.sub(r"<think>.*?</think>\n?", "", llm_response['message']['content'], flags=re.DOTALL)
         
-        
-    sample = SingleTurnSample(
-        user_input=user_message,
-        response=llm_response['message']['content'],
-        retrieved_contexts=[
-            context
-        ]
-    )
-
-    # evaluator_model = "mistralai/Mistral-7B-Instruct-v0.3"
-    # tokenizer = AutoTokenizer.from_pretrained(evaluator_model)
-    # evaluator_llm = AutoModelForCausalLM.from_pretrained(evaluator_model, low_cpu_mem_usage=True, local_files_only=True, device_map="auto",  trust_remote_code=True)
-    # pipe = pipeline("text-generation", model=evaluator_model, tokenizer=tokenizer)
-    # evaluator_llm = HuggingFacePipeline(pipeline=pipe)
-    
-    #embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    
-    # evaluator_llm = Ollama(model="mistral", base_url=request.ollama_server_url)
-    evaluator_llm = ChatOllama(model="llama3")
-    embeddings = OllamaEmbeddings(model="llama3")
-   
-    scorer = ResponseRelevancy(llm=evaluator_llm, embeddings=embeddings)
-    asyncio.run(evaluate_relevancy(scorer, sample))
     
     # Format response in OpenAI format
     return format_response(request, llm_response)

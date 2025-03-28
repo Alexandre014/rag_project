@@ -95,7 +95,7 @@ def launch_rag(index_location, generation_model="llama3.2" ):
 
 
 def main():
-    index_path = "indexes/dolly_Raw_index" 
+    index_path = "indexes/global_index" 
     launch_rag(index_path, "mistral")
 
 if __name__ == "__main__":

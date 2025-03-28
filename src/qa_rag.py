@@ -1,148 +1,61 @@
 import os
-import sys
 import requests
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import FAISS
-from langchain import HuggingFacePipeline
 from langchain.chains import RetrievalQA
-from transformers import AutoTokenizer, pipeline
+from langchain_ollama import ChatOllama
+from langchain.prompts import PromptTemplate
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
 
-def err_remove(er):
-    lin = "------------"
-    er = str(er)
-    start_index = er.find(lin) + len(lin)
-    end_index = er.rfind(lin)
-    Answer = er[start_index:end_index].strip()
-    return Answer
+# Serveur Ollama
+OLLAMA_SERVER_URL = "https://tigre.loria.fr:11434"
+#OLLAMA_SERVER_URL = "http://localhost:11434"
 
-# choose the server you want to use 
-#OLLAMA_SERVER_URL = "http://127.0.0.1:11434/api/chat"
-OLLAMA_SERVER_URL = "https://tigre.loria.fr:11434/api/chat"
+# Nombre de documents à récupérer
+docs_max = 6  
 
-docs_max = 6 #maximum number of documents retrieved and used to generate an answer (documents not files)
+def launch_rag(index_location, generation_model="mistral"):
+    """Lance le RAG sur un index donné."""
 
-def query_ollama(model, messages):
-    """Send a query to Ollama server"""
-    
-    payload = {
-        "model": model,
-        "messages": [{"role": message['role'], "content": str(message['content'])} for message in messages],
-        "stream": False 
-    }
-    
-    try:
-        response = requests.post(OLLAMA_SERVER_URL, json=payload)
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Request error to ollama : {e}")
-        return "Error while generating the response."
-
-
-def launch_rag(index_location, generation_model="llama3.2" ):
-    """Launch the rag on a specified index"""
-
-    """step 1 : load embedding"""
-
-    modelPath = "sentence-transformers/all-MiniLM-l6-v2" # model for embedding
-
-    # Create a dictionary with model configuration options, specifying to use the CPU for computations
-    model_kwargs = {'device':'cpu'}
-
-    # Create a dictionary with encoding options, specifically setting 'normalize_embeddings' to False
-    encode_kwargs = {'normalize_embeddings': False}
-
-    # Initialize an instance of HuggingFaceEmbeddings with the specified parameters
+    # Étape 1 : Charger les embeddings et l'index FAISS
+    modelPath = "sentence-transformers/all-MiniLM-l6-v2"
     embeddings = HuggingFaceEmbeddings(
-        model_name=modelPath,     # Provide the pre-trained model's path
-        model_kwargs=model_kwargs, # Pass the model configuration options
-        encode_kwargs=encode_kwargs # Pass the encoding options
+        model_name=modelPath, model_kwargs={'device': 'cpu'}, encode_kwargs={'normalize_embeddings': False}
     )
-    db = FAISS.load_local(index_location, embeddings=embeddings, allow_dangerous_deserialization= True)
-
-
-    """step 2 : retrieve data and start conversation"""
-
+    db = FAISS.load_local(index_location, embeddings=embeddings, allow_dangerous_deserialization=True)
     retriever = db.as_retriever(search_kwargs={"k": docs_max})
 
+    # Étape 2 : Définir le modèle et le prompt
+    llm = ChatOllama(base_url=OLLAMA_SERVER_URL, model=generation_model)
+
+    prompt_template = PromptTemplate(
+        template=(
+            "You are a french AI assistant answering questions based strictly on the provided documents. "
+            "Your response should be in french, concise, accurate, and directly relevant to the question. "
+            "If the documents do not contain enough information, say 'Je ne parviens pas à répondre à partir de ces documents.' "
+            "\n\n"
+            "### Documents:\n"
+            "{context}"
+            "\n\n"
+            "### Question:\n"
+            "{question}"
+        ),
+        input_variables=["context", "question"]
+    )
+
+    qa_chain = RetrievalQA.from_chain_type(
+        llm=llm, chain_type="stuff", retriever=retriever, chain_type_kwargs={"prompt": prompt_template}
+    )
+
+    # Étape 3 : Démarrer l'interaction avec l'utilisateur
     question = input("Posez votre question : ")
-
-    prompt = (
-        "You are a french AI assistant answering questions based strictly on the provided documents. "
-        "Your response should be in french, concise, accurate, and directly relevant to the question. "
-        "If the documents do not contain enough information, say 'Je ne parviens pas à répondre à partir de ces documents.' "
-        "\n\n"
-        "### Documents:\n"
-        "{context}"
-        "\n\n"
-        "### Question:\n"
-        "{question}"
-        )
-
-    conversation=[]
-
-    # Specify the model name you want to use
-    model_name = "Intel/dynamic_tinybert"
-
-    # Load the tokenizer associated with the specified model
-    tokenizer = AutoTokenizer.from_pretrained(model_name, padding=True, truncation=True, max_length=512)
-
-    
-    question_answerer = pipeline(
-        "question-answering", 
-        model=model_name, 
-        tokenizer=tokenizer,
-        return_tensors='pt'
-    )
-    
-    llm = HuggingFacePipeline(
-        pipeline=question_answerer,
-        model_kwargs={"temperature": 0.7, "max_length": 512},
-    )
-    
     while question != "quit":
-        
-        #docs = retriever.invoke(question) # retrieved documents 
-        
-        qa = RetrievalQA.from_chain_type(llm=llm, chain_type="refine", retriever=retriever, return_source_documents=False)
-        
-        
-        try:
-            #result = qa.invoke({"query": question})
-            #result["result"]
-            result = qa.invoke({"query": question})
-            context = result["result"]
-            
-        except:
-            error = sys.exc_info()
-            context = err_remove(error)
-
-        #context = " ".join([doc.page_content for doc in docs])  # concatenate documents
-        
-        print(context)
-        
-        conversation.append({'role': 'user', 'content': prompt.format(context=context, question=question)})
-   
-        response = query_ollama(generation_model, conversation)
-        print("\nResponse: ", response['message']['content'], "\n")
-        
-        conversation.append({'role': 'assistant', 'content': response})
-        
-        # # display source documents used to answer (file name + page number)
-        # if docs and ('source' in docs[0].metadata):
-        #     print("\nLa réponse a été générée à partir des ", len(docs), " documents suivants : ")
-        #     for doc in docs:
-        #         print(os.path.basename(doc.metadata['source']), ": page", doc.metadata['page_label'])
-            
-        print(f"\nUse 'quit' to stop\n")
+        response = qa_chain.invoke(question)
+        print("\nResponse:", response["result"], "\n")
         question = input("Posez votre question : ")
-    
-
-
 
 def main():
-    index_path = "indexes/global_index" 
-    launch_rag(index_path, "mistral")
+    index_path = "indexes/global_index"
+    launch_rag(index_path, "llama3.2")
 
 if __name__ == "__main__":
     main()
-    
