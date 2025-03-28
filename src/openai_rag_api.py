@@ -31,7 +31,7 @@ class OpenAIRequest(BaseModel):
     """Define OpenAI-compatible request"""
     model: str
     messages: list  # List of message history
-    index_path: str = "indexes/datasets/piaf_100_index"
+    index_path: str = "indexes/pdf_indexes/e5base"
     docs_max: int = 6 # maximum number of documents retrieved and used to generate an answer (documents not files)
     ollama_server_url: str = "https://tigre.loria.fr:11434/api/chat" # choose your Ollama server, or localhost: http://127.0.0.1:11434/api/chat
 
@@ -42,7 +42,7 @@ def load_index(index_path):
         raise HTTPException(status_code=400, detail=f"Index not found at {index_path}")
 
     # embedding
-    model_path = "sentence-transformers/all-MiniLM-l6-v2" 
+    model_path = "intfloat/multilingual-e5-base" 
     embeddings = HuggingFaceEmbeddings(model_name=model_path)
     
     return FAISS.load_local(index_path, embeddings=embeddings, allow_dangerous_deserialization=True) # allow_dangerous_deserialization=True -> Warning : load trustworthy files
@@ -74,13 +74,13 @@ def format_response(request : OpenAIRequest, response):
         "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
     }
 
-def base_prompt():
+def rag_prompt():
     return(
         "You are a French AI assistant answering questions based strictly on the provided documents. "
         "Your response should be in French, concise, accurate, and directly relevant to the question. "
         "If the documents do not contain enough information, say 'Je ne parviens pas à répondre à partir de ces documents.' "
     )
-def qa_prompt():
+def dataset_prompt():
     return(
         "You are a french AI assistant answering questions based strictly on the provided documents. "
         "Your response should be a small chunk (one word or a string of words) of the document, answering directly to the question. Do not generate something by yourself"
@@ -90,9 +90,11 @@ def qa_prompt():
     ) 
     
 
-def generate_prompt(context, user_message):
+def generate_prompt(context, user_message, evaluation_prompt=False):
+    default_prompt = rag_prompt()
+    if evaluation_prompt: default_prompt = dataset_prompt()
     prompt = (
-        qa_prompt() +
+        default_prompt +
         "\n\n"
         "### Documents:\n"
         "{context}"
@@ -175,7 +177,10 @@ def openai_chat(request: OpenAIRequest):
     context = " ".join([doc.page_content for doc in docs])
 
     # Create Ollama query
-    ollama_query = [{'role': 'user', 'content': generate_prompt(context, user_message)}]
+    evaluation = False
+    if ("dataset" in request.index_path):
+        evaluation = True
+    ollama_query = [{'role': 'user', 'content': generate_prompt(context, user_message, evaluation)}]
     
     # Query the LLM
     llm_response = query_ollama(request.model, ollama_query, request.ollama_server_url)

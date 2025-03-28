@@ -5,19 +5,20 @@ import os
 from datasets import load_dataset
 import openai_rag_api
 API_URL = "http://127.0.0.1:8000/v1/chat/completions" #the RAG API url
-MODEL_NAME = "mistral" # model used for the tests
-CSV_OUTPUT = "./benchmarks/piaf_" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
-INDEX_PATH = "indexes/datasets/piaf_100_index" # index storing the documents
-QUESTIONS_AMOUNT = 5
+MODEL_NAME = "deepseek-r1:32b" # model used for the tests
+CSV_OUTPUT = "./benchmarks/piaf_e5base_camembert_" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
+INDEX_PATH = "indexes/dataset_indexes/piaf_e5base_Full" # index storing the documents
+QUESTIONS_AMOUNT = 15
 
 DATASET_NAME = "AgentPublic/piaf"
 EXPECTED_ANSWER_COLUMN = "answers"
 
 # if the file name is already used
 if os.path.exists(CSV_OUTPUT):
-    print("Benchmark canceled.")
-    raise Exception("This benchmark already exists")
-
+    erase = input("This benchmark already exists, do you want to delete it? (y/n)")
+    if erase != "y" : 
+        raise Exception("This benchmark already exists, benchmark canceled")
+    
 # to retrieve questions
 dataset = load_dataset("AgentPublic/piaf", "plain_text", split="train")
 dataset = dataset.select(range(QUESTIONS_AMOUNT))
@@ -64,7 +65,7 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
     
         
         #write to the csv file
-        writer.writerow([question, answer, elapsed_time, answer_quality])
+        writer.writerow([question, answer,  answer_quality, expected_answer["text"][0], elapsed_time])
         print(f"Response received in {elapsed_time}s\n")
 
 print(f"Benchmark completed.")

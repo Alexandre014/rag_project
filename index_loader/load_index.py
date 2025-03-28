@@ -30,7 +30,7 @@ def embed_data(data, index_destination):
     docs = text_splitter.split_documents(data)
     
     # Define the retrieving configuration for later
-    modelPath = "sentence-transformers/all-MiniLM-l6-v2" # model for retrieving
+    modelPath = "intfloat/multilingual-e5-base" # model for retrieving
     model_kwargs = {'device':'cpu'} # model configuration options
     encode_kwargs = {'normalize_embeddings': False} # encoding options
 
@@ -92,9 +92,9 @@ def load_index_from_dataset(dataset_name, data_column, index_destination):
         
 
 def main():
-    index_path = "indexes/global_index"
+    
+    index_path = "indexes/dataset_indexes/e5base_Full"
     #load_index_from_directory("data/pdf", index_path) #load the index only one time if you don't change the files
-    index_path = "indexes/piaf_index"
     load_index_from_dataset("AgentPublic/piaf", "context", index_path)
 
 if __name__ == "__main__":
