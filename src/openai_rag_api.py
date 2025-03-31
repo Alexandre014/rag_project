@@ -154,7 +154,7 @@ def evaluate_answer_quality_camembert(generated_answer, expected_answer):
 
     similarity_score = util.pytorch_cos_sim(embedding1, embedding2)
 
-    return 'similarity = %.4f' % similarity_score.item()
+    return similarity_score.item()
 
 
 @app.post("/v1/chat/completions")
