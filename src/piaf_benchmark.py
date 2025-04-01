@@ -8,7 +8,7 @@ API_URL = "http://127.0.0.1:8000/v1/chat/completions" #the RAG API url
 MODEL_NAME = "mistral" # model used for the tests
 CSV_OUTPUT = "./benchmarks/piaf_e5base_camembert_" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
 INDEX_PATH = "indexes/dataset_indexes/piaf_e5base_Full" # index storing the documents
-QUESTIONS_AMOUNT = 20
+QUESTIONS_AMOUNT = 1000
 
 DATASET_NAME = "AgentPublic/piaf"
 EXPECTED_ANSWER_COLUMN = "answers"

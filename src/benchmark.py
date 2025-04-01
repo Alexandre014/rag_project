@@ -5,8 +5,8 @@ import os
 
 API_URL = "http://127.0.0.1:8000/v1/chat/completions" #the RAG API url
 QUESTIONS_FILE = "eval_questions.txt"
-MODEL_NAME = "deepseek-r1:32b" # model used for the tests
-CSV_OUTPUT = "./benchmarks/" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
+MODEL_NAME = "mistral" # model used for the tests
+CSV_OUTPUT = "./benchmarks/rag_e5base_" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
 INDEX_PATH = "indexes/pdf_indexes/e5base" # index storing the documents
 
 # if the file name is already used

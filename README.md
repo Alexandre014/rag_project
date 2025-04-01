@@ -7,7 +7,7 @@ This project is a **Retrieval-Augmented Generation (RAG) system** using Langchai
 ## ✨ Features
 
 -   📂 Loads and indexes PDF documents into a FAISS vector store.
--   🔎 Uses `sentence-transformers/all-MiniLM-l6-v2` for text embeddings.
+-   🔎 Uses `intfloat/multilingual-e5-base` for text embeddings.
 -   🚀 Provides a **FastAPI-based chat API** compatible with OpenAI-style requests.
 -   📜 Retrieves and formats context from indexed documents.
 -   🤖 Queries an **Ollama** server for responses.
