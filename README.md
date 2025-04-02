@@ -24,7 +24,9 @@ This project is a **Retrieval-Augmented Generation (RAG) system** using Langchai
 Run the following command to install required dependencies:  
 `pip install -r requirements.txt`
 
-## 🚀 Usage
+---
+
+# 🚀 Usage
 
 ### 💬 Interaction Methods
 
@@ -36,15 +38,11 @@ You can interact with the system in multiple ways:
 
 ### 1️⃣ Index Documents (To be done only once, when you don't want to change the documents)
 
-Add your PDF files to "data/pdf" folder.
+-   Add your PDF files to "data/pdf" folder.
 
-Run the `load_index.py` script :
-
-`python index_loader/load_index.py`
+-   Run the `load_index.py` script:
 
 This will generate a FAISS index and save it in indexes/global_index.
-
-To do it only once, when you don't want to change the documents.
 
 ### 2️⃣ Start API Server
 
@@ -62,10 +60,10 @@ Post request :
 ```
 $response = Invoke-RestMethod -Uri "http://127.0.0.1:8000/v1/chat/completions" -Method Post -ContentType "application/json" -Body (@{
     model="Model name";
-    messages=@(@{role="user"; content="Q"});
+    messages=@(@{role="user"; content="Your question"});
     index_path="indexes/global_index";
     docs_max=6;
-    ollama_server_url="server url"
+    ollama_server_url="Server url"
 } | ConvertTo-Json)
 ```
 
@@ -73,7 +71,7 @@ Display the response :
 
 `$response | ConvertTo-Json`
 
-#### Linux :
+#### Linux & MacOS:
 
 Post request :
 
@@ -82,10 +80,10 @@ response=$(curl -X POST "http://127.0.0.1:8000/v1/chat/completions" \
      -H "Content-Type: application/json" \
      -d '{
           "model": "Model name",
-          "messages": [{"role": "user", "content": "Q"}],
-          "index_path": "indexes/global_index",
+          "messages": [{"role": "user", "content": "Your question"}],
+          "index_path": "indexes/dataset_indexes/e5base_Full",
           "docs_max": 6,
-          "ollama_server_url": "server url"
+          "ollama_server_url": "Server url"
         }')
 ```
 
@@ -94,13 +92,15 @@ Display the response :
 
 ### 🔹 Available Models Endpoint
 
-#### Windows Powershell :
+#### Windows Powershell:
 
 `Invoke-RestMethod -Uri "http://127.0.0.1:8000/v1/models" -Method Get`
 
-#### Linux :
+#### Linux & MacOS:
 
 `curl -X GET "http://127.0.0.1:8000/v1/models"`
+
+---
 
 ## 🤖 Openwebui integration
 
@@ -109,7 +109,7 @@ Display the response :
 -   A running **[Open Webui](https://docs.openwebui.com)** server :
     `open-webui serve`
 
-### Configuration steps :
+### Configuration steps:
 
 -   1️⃣ Go to Settings -> Admin Settings -> Connections
 
@@ -126,3 +126,28 @@ Display the response :
 ### Choose your model and use it !
 
 ![Open WebUI user interface](image-1.png)
+
+---
+
+## ⏱️ RAG Evaluation
+
+Benchmarks are available here: https://drive.google.com/drive/folders/1-7sRiN-qAH5SUz-HZGdB_tFyHSjDoHF1?usp=sharing
+
+I used a **dynamic similarity** evaluation with this model: `dangvantuan/sentence-camembert-base`
+
+I also tried with **[Gensim](https://radimrehurek.com/gensim/auto_examples/tutorials/run_scm.html#sphx-glr-auto-examples-tutorials-run-scm-py)** **static similarity** evaluation:
+
+You can try it by setting `DYNAMIC_SIMILARITY` to `False`.
+
+### To reproduce them:
+
+### Student questions benchmark
+
+-   Launch `rag_benchmark.py`
+-   You can tweak : **model**, **index**, **input file**, etc, with the static variables
+
+### Dataset benchmark
+
+-   Launch `piaf_benchmark.py`
+-   It uses the french question-answering dataset : `AgentPublic/piaf`
+-   So you can also tweak the sample size : `QUESTIONS_AMOUNT`

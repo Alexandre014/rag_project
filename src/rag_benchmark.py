@@ -9,6 +9,8 @@ QUESTIONS_FILE = "eval_questions.csv"
 MODEL_NAME = "deepseek-r1:32b" # model used for the tests
 CSV_OUTPUT = "./benchmarks/eval_rag_e5base_" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
 INDEX_PATH = "indexes/pdf_indexes/e5base" # index storing the documents
+DOCS_MAX = 6 # maximum number of documents retrieved and used to generate an answer (documents not files)
+DYNAMIC_SIMILARITY = True
 
 # if the file name is already used
 if os.path.exists(CSV_OUTPUT):
@@ -26,7 +28,7 @@ with open(QUESTIONS_FILE, "r", encoding="utf-8") as f:
 # Generate benchmark
 with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
     writer = csv.writer(csvfile)
-    writer.writerow(["Question", "Response", "Response time (s)"])
+    writer.writerow(["Question", "Response", "Answer quality", "Expected answer", "Success", "Response time (s)"])
 
     quality_sum = 0
     questions_count = 0
@@ -39,7 +41,7 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
             "model": MODEL_NAME,
             "messages": [{"role": "user", "content": question}],
             "index_path": INDEX_PATH,
-            "docs_max": 6,
+            "docs_max": DOCS_MAX,
             "ollama_server_url": "https://tigre.loria.fr:11434/api/chat"
         }
 
@@ -60,7 +62,13 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
             raise Exception("API error")
         
         print(answer)
-        answer_quality = openai_rag_api.evaluate_answer_quality_camembert(answer, expected_answer) 
+        
+        
+        if DYNAMIC_SIMILARITY:
+            answer_quality = openai_rag_api.evaluate_answer_quality_camembert(answer, expected_answer) 
+        else:
+            answer_quality = openai_rag_api.evaluate_answer_quality_gensim(answer, expected_answer) 
+            
         print(answer_quality)
     
         questions_count += 1
@@ -74,5 +82,9 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
         #write to the csv file
         writer.writerow([question, answer,  '%.4f' % answer_quality, expected_answer, success_mark, elapsed_time])
         print(f"Response received in {elapsed_time}s\n")
+    
+    quality_average = quality_sum / questions_count
+    success_percentage = success_count/questions_count
+    writer.writerow(["Average : ", "", '%.4f' % quality_average, "", '%.2f' % (success_percentage*100) + " %", ""])
 
 print(f"Benchmark completed.")

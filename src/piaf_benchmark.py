@@ -8,7 +8,9 @@ API_URL = "http://127.0.0.1:8000/v1/chat/completions" #the RAG API url
 MODEL_NAME = "mistral" # model used for the tests
 CSV_OUTPUT = "./benchmarks/piaf_e5base_camembert_" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
 INDEX_PATH = "indexes/dataset_indexes/piaf_e5base_Full" # index storing the documents
-QUESTIONS_AMOUNT = 1000
+DOCS_MAX = 4 # maximum number of documents retrieved and used to generate an answer (documents not files)
+DYNAMIC_SIMILARITY = True
+QUESTIONS_AMOUNT = 50
 
 DATASET_NAME = "AgentPublic/piaf"
 EXPECTED_ANSWER_COLUMN = "answers"
@@ -39,7 +41,7 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
             "model": MODEL_NAME,
             "messages": [{"role": "user", "content": question}],
             "index_path": INDEX_PATH,
-            "docs_max": 4,
+            "docs_max": DOCS_MAX,
             "ollama_server_url": "https://tigre.loria.fr:11434/api/chat"
         }
 
@@ -63,7 +65,12 @@ with open(CSV_OUTPUT, "w", newline="", encoding="utf-8") as csvfile:
         
         print("Expected answer : ", expected_answer["text"][0])
         # evaluate the answer quality
-        answer_quality = openai_rag_api.evaluate_answer_quality_camembert(answer, expected_answer["text"][0]) 
+        
+        if DYNAMIC_SIMILARITY:
+            answer_quality = openai_rag_api.evaluate_answer_quality_camembert(answer, expected_answer["text"][0]) 
+        else:
+            answer_quality = openai_rag_api.evaluate_answer_quality_gensim(answer, expected_answer["text"][0]) 
+            
         print(answer_quality)
     
         questions_count += 1

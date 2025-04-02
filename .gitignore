@@ -4,3 +4,4 @@ indexes/
 __pycache__/
 benchmarks/
 .webui_secret_key
+archive/

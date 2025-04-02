@@ -118,7 +118,7 @@ def evaluate_answer_quality_gensim(generated_answer, expected_answer):
     
     # Import and download stopwords from NLTK.
     download('stopwords')  # Download stopwords list.
-    stop_words = stopwords.words('english')
+    stop_words = stopwords.words('french')
 
     def preprocess(sentence):
         return [w for w in sentence.lower().split() if w not in stop_words]
