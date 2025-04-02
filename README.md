@@ -133,7 +133,7 @@ Display the response :
 
 Benchmarks are available here: https://drive.google.com/drive/folders/1-7sRiN-qAH5SUz-HZGdB_tFyHSjDoHF1?usp=sharing
 
-I used a **dynamic similarity** evaluation with this model: `dangvantuan/sentence-camembert-base`
+I used a **dynamic similarity** evaluation with this model: `dangvantuan/sentence-camembert-base`.
 
 I also tried with **[Gensim](https://radimrehurek.com/gensim/auto_examples/tutorials/run_scm.html#sphx-glr-auto-examples-tutorials-run-scm-py)** **static similarity** evaluation:
 
@@ -141,13 +141,21 @@ You can try it by setting `DYNAMIC_SIMILARITY` to `False`.
 
 ### To reproduce them:
 
-### Student questions benchmark
+### 🔹Login to your huggingface account
 
--   Launch `rag_benchmark.py`
--   You can tweak : **model**, **index**, **input file**, etc, with the static variables
+Benchmarks uses a HuggingFace model for answer evaluation and datasets, so you will have to login.
 
-### Dataset benchmark
+`huggingface-cli login`
 
--   Launch `piaf_benchmark.py`
--   It uses the french question-answering dataset : `AgentPublic/piaf`
--   So you can also tweak the sample size : `QUESTIONS_AMOUNT`
+Then paste your token with right click.
+
+-   ### Benchmark Using Questions from a CSV File
+
+    -   Launch `rag_benchmark.py`
+    -   You can tweak : **model**, **index**, **input file**, etc, with the static variables.
+
+-   ### Dataset benchmark
+
+    -   Launch `piaf_benchmark.py`
+    -   It uses the french question-answering dataset : `AgentPublic/piaf`.
+    -   So you can also tweak the sample size : `QUESTIONS_AMOUNT`.
