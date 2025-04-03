@@ -76,12 +76,9 @@ def format_response(request : OpenAIRequest, response):
 
 def rag_prompt():
     return (
-        "You are a French-speaking AI assistant answering questions strictly based on the provided documents. "
-        "Your responses should be precise, concise, and directly relevant to the question. "
-        "If relevant information is found, cite your sources by mentioning the name of the corresponding document. "
-        "If the documents do not contain enough information to answer, say: "
-        "'Je ne parviens pas à répondre à partir de ces documents.' "
-        "In that case, suggest ways for the user to find the answer elsewhere, such as reliable sources or research directions."
+        "You are a French AI assistant answering questions based strictly on the provided documents. "
+        "Your response should be in French, concise, accurate, and directly relevant to the question. "
+        "If the documents do not contain enough information, say 'Je ne parviens pas à répondre à partir de ces documents.' "
     )
 def dataset_prompt():
     return (
