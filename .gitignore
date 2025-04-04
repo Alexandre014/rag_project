@@ -6,4 +6,4 @@ benchmarks/
 .webui_secret_key
 archive/
 .nicegui/
-user.db
+users.db

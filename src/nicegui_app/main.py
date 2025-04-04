@@ -43,8 +43,10 @@ def create_user(username: str, password: str):
     if not get_user(username):
         cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, hash_password(password)))
         conn.commit()
-
-# authentication middleware
+def logout():
+    app.storage.user.clear()  # Supprime toute la session
+    ui.navigate.to("/login")
+# autentication middleware
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         excluded_paths = [
@@ -59,12 +61,15 @@ class AuthMiddleware(BaseHTTPMiddleware):
             print("exempted")
             return await call_next(request)
         print("middleware")
-
-        # Check if user is stored in app.storage.user
-        if 'username' in app.storage.user:
-            print("user found in storage")
-            return await call_next(request)
-        
+        if app.storage.user.get('session_id'):
+            print("session")
+            cursor.execute("SELECT username FROM sessions WHERE session_id = ?", (app.storage.user['session_id'],))
+            user = cursor.fetchone()
+            if user:
+                print(user)
+                app.storage.user['username'] = user[0]
+                #app.storage.user['session_id'] = session_id
+                return await call_next(request)
         print("bad")
         return RedirectResponse("/login")
 
@@ -91,12 +96,15 @@ def login_page():
     def login():
         user = get_user(username.value)
         if user and verify_password(password.value, user[2]):
-            # Store user info in app.storage instead of cookies
+            session_id = str(uuid4())
+            cursor.execute("INSERT INTO sessions (session_id, username) VALUES (?, ?)", (session_id, user[1]))
+            conn.commit()
             app.storage.user['username'] = user[1]
-            app.storage.user['session_id'] = str(uuid4())  # Optional: Store a session ID in the storage
-            ui.navigate.to("/")
-            #response = RedirectResponse("/", status_code=303)
+            app.storage.user['session_id'] = session_id
+            response = RedirectResponse("/", status_code=303)
             print("redirect response passed")
+            ui.navigate.to("/")
+            return response
         else:
             ui.notify("Identifiants incorrects", color="negative")
     
@@ -104,6 +112,7 @@ def login_page():
         username = ui.input("Nom d'utilisateur")
         password = ui.input("Mot de passe", password=True)
         ui.button("Se connecter", on_click=login)
+        ui.button("Créer un compte", on_click=lambda: ui.navigate.to("/register"))
 
 API_URL = "http://127.0.0.1:8000/v1/chat/completions"
 MODEL_NAME = "deepseek-r1:32b" 
@@ -177,6 +186,8 @@ def chat_messages() -> None:
 @ui.page("/")
 async def main_page():
     global text_input, send_button
+    # Retrieve username from storage if available
+    #username = app.storage.user.get('username', 'Anonymous')
     user_id = str(uuid4())
     avatar = f"https://robohash.org/{user_id}?bgset=bg2"
 
@@ -196,6 +207,8 @@ async def main_page():
     await ui.context.client.connected()
     with ui.column().classes("w-full max-w-2xl mx-auto items-stretch"):
         chat_messages()
-
+    with ui.header():
+        ui.button("Se déconnecter", on_click=logout)
+        
 if __name__ in {"__main__", "__mp_main__"}:
     ui.run(storage_secret="secret_secure_storage", port=8080, reconnect_timeout=2000)
