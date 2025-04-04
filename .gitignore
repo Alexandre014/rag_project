@@ -5,3 +5,5 @@ __pycache__/
 benchmarks/
 .webui_secret_key
 archive/
+.nicegui/
+user.db
