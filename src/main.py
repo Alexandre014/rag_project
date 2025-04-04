@@ -44,7 +44,7 @@ def create_user(username: str, password: str):
         cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, hash_password(password)))
         conn.commit()
 
-# autentication middleware
+# authentication middleware
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         excluded_paths = [
@@ -59,16 +59,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
             print("exempted")
             return await call_next(request)
         print("middleware")
-        session_id = request.cookies.get("session_id")
-        if session_id:
-            print("session")
-            cursor.execute("SELECT username FROM sessions WHERE session_id = ?", (session_id,))
-            user = cursor.fetchone()
-            if user:
-                print("user")
-                app.storage.user['username'] = user[1]  # Use user[1] (username)
-                app.storage.user['session_id'] = session_id
-                return await call_next(request)
+
+        # Check if user is stored in app.storage.user
+        if 'username' in app.storage.user:
+            print("user found in storage")
+            return await call_next(request)
+        
         print("bad")
         return RedirectResponse("/login")
 
@@ -95,16 +91,12 @@ def login_page():
     def login():
         user = get_user(username.value)
         if user and verify_password(password.value, user[2]):
-            session_id = str(uuid4())
-            cursor.execute("INSERT INTO sessions (session_id, username) VALUES (?, ?)", (session_id, user[1]))
-            conn.commit()
+            # Store user info in app.storage instead of cookies
             app.storage.user['username'] = user[1]
-            app.storage.user['session_id'] = session_id
-            response = RedirectResponse("/", status_code=303)
+            app.storage.user['session_id'] = str(uuid4())  # Optional: Store a session ID in the storage
+            ui.navigate.to("/")
+            #response = RedirectResponse("/", status_code=303)
             print("redirect response passed")
-            response.set_cookie("session_id", session_id, max_age=3600, path="/", httponly=True, secure=False, samesite="Lax")
-
-            return response
         else:
             ui.notify("Identifiants incorrects", color="negative")
     
