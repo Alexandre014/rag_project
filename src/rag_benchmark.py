@@ -6,7 +6,7 @@ import openai_rag_api
 
 API_URL = "http://127.0.0.1:8000/v1/chat/completions" #the RAG API url
 QUESTIONS_FILE = "eval_questions.csv"
-MODEL_NAME = "deepseek-r1:32b" # model used for the tests
+MODEL_NAME = "bge-m3:latest" # model used for the tests
 CSV_OUTPUT = "./benchmarks/eval_rag_e5base_" + MODEL_NAME.replace(":", "_") + "_benchmark_results.csv" # responses file name
 INDEX_PATH = "indexes/pdf_indexes/e5base" # index storing the documents
 DOCS_MAX = 6 # maximum number of documents retrieved and used to generate an answer (documents not files)

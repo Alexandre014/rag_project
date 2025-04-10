@@ -7,3 +7,4 @@ benchmarks/
 archive/
 .nicegui/
 users.db
+*.db

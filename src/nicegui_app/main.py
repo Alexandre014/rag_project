@@ -9,7 +9,6 @@ from datetime import datetime
 from typing import List, Tuple
 import requests
 import asyncio
-from fastapi.middleware.cors import CORSMiddleware
 
 conn = sqlite3.connect("users.db", check_same_thread=False)
 cursor = conn.cursor()
@@ -43,10 +42,11 @@ def create_user(username: str, password: str):
     if not get_user(username):
         cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, hash_password(password)))
         conn.commit()
+
 def logout():
-    app.storage.user.clear()  # Supprime toute la session
+    app.storage.user.clear()
     ui.navigate.to("/login")
-# autentication middleware
+
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         excluded_paths = [
@@ -54,23 +54,19 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/register",
             "/_nicegui",
             "/_nicegui_ws",
-            "/favicon.ico",  # Add favicon to excluded paths
+            "/favicon.ico",
         ]
         path = request.url.path
         if any(path.startswith(excluded) for excluded in excluded_paths):
-            print("exempted")
             return await call_next(request)
-        print("middleware")
+
         if app.storage.user.get('session_id'):
-            print("session")
             cursor.execute("SELECT username FROM sessions WHERE session_id = ?", (app.storage.user['session_id'],))
             user = cursor.fetchone()
             if user:
-                print(user)
                 app.storage.user['username'] = user[0]
-                #app.storage.user['session_id'] = session_id
                 return await call_next(request)
-        print("bad")
+
         return RedirectResponse("/login")
 
 app.add_middleware(AuthMiddleware)
@@ -81,7 +77,6 @@ def register_page():
         if username.value and password.value:
             create_user(username.value, password.value)
             ui.notify("Inscription réussie !", color="positive")
-            print("inscription ok")
             ui.navigate.to("/login")
         else:
             ui.notify("Veuillez remplir tous les champs", color="negative")
@@ -101,10 +96,7 @@ def login_page():
             conn.commit()
             app.storage.user['username'] = user[1]
             app.storage.user['session_id'] = session_id
-            response = RedirectResponse("/", status_code=303)
-            print("redirect response passed")
             ui.navigate.to("/")
-            return response
         else:
             ui.notify("Identifiants incorrects", color="negative")
     
@@ -116,7 +108,7 @@ def login_page():
 
 API_URL = "http://127.0.0.1:8000/v1/chat/completions"
 MODEL_NAME = "deepseek-r1:32b" 
-INDEX_PATH = "indexes/pdf_indexes/e5base"  # FAISS index path
+INDEX_PATH = "indexes/pdf_indexes/e5base"
 OLLAMA_SERVER_URL = "https://tigre.loria.fr:11434/api/chat" 
 
 messages: List[Tuple[str, str, str, str]] = []
@@ -127,10 +119,10 @@ J'essaie de répondre en me basant sur les documents officiels que l'on m'a four
 """
 messages.append(("bot", "https://robohash.org/bot?bgset=bg2", first_message, datetime.now().strftime('%X')))
 
-
 processing = False
+spinner_set_visibility = lambda visible: None  # no-op par défaut
 
-def send_message(user_id: str, avatar: str, text: str) -> None:
+def send_message(user_id: str, avatar: str, text: str, toggle_spinner=lambda visible: None) -> None:
     global processing
     if processing:
         return
@@ -139,10 +131,11 @@ def send_message(user_id: str, avatar: str, text: str) -> None:
     messages.append((user_id, avatar, text, stamp))
     messages.append(("bot", "https://robohash.org/bot?bgset=bg2", "chargement...", datetime.now().strftime('%X')))
     chat_messages.refresh()
-    
-    text_input.disable
-    send_button.disable
-    
+
+    text_input.disable()
+    send_button.disable()
+    toggle_spinner(True)
+
     async def fetch_reply():
         global processing
         try:
@@ -165,9 +158,9 @@ def send_message(user_id: str, avatar: str, text: str) -> None:
         messages.pop()
         messages.append(("bot", "https://robohash.org/bot?bgset=bg2", reply, datetime.now().strftime('%X')))
         chat_messages.refresh()
-        
-        text_input.enable
-        send_button.enable
+        toggle_spinner(False)
+        text_input.enable()
+        send_button.enable()
         processing = False
 
     asyncio.create_task(fetch_reply())
@@ -182,18 +175,16 @@ def chat_messages() -> None:
         ui.label("Aucun message pour le moment").classes("mx-auto my-36")
     ui.run_javascript("window.scrollTo(0, document.body.scrollHeight)")
 
-
 @ui.page("/")
 async def main_page():
-    global text_input, send_button
-    # Retrieve username from storage if available
-    #username = app.storage.user.get('username', 'Anonymous')
+    global text_input, send_button, spinner_set_visibility
+
     user_id = str(uuid4())
     avatar = f"https://robohash.org/{user_id}?bgset=bg2"
 
     def send():
         if text_input.value.strip():
-            send_message(user_id, avatar, text_input.value)
+            send_message(user_id, avatar, text_input.value, toggle_spinner=spinner_set_visibility)
             text_input.value = ""
 
     ui.add_css("a:link, a:visited {color: inherit !important; text-decoration: underline; font-weight: 500}")
@@ -203,12 +194,16 @@ async def main_page():
             text_input = ui.input(placeholder="Posez votre question...").on("keydown.enter", send)\
                 .props("rounded outlined input-class=mx-3").classes("flex-grow")
             send_button = ui.button("Envoyer", on_click=send).classes("ml-2")
-    
+
     await ui.context.client.connected()
     with ui.column().classes("w-full max-w-2xl mx-auto items-stretch"):
         chat_messages()
+        spinner = ui.spinner('dots', size='lg', color='blue')
+        spinner.set_visibility(False)
+        spinner_set_visibility = spinner.set_visibility
+
     with ui.header():
         ui.button("Se déconnecter", on_click=logout)
-        
+
 if __name__ in {"__main__", "__mp_main__"}:
     ui.run(storage_secret="secret_secure_storage", port=8080, reconnect_timeout=2000)
