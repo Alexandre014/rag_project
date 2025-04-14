@@ -35,6 +35,7 @@ You can interact with the system in multiple ways:
 -   🖥️ Terminal: Run rag.py for direct testing.
 -   🔗 API: Use openai-rag_api.py to query via an API.
 -   🌐 Web Interface: Integrate with OpenWebUI for a user-friendly interface.
+-   😀 NiceGUI Chatbot: Talk with a simple chatbot.
 
 ### 1️⃣ Index Documents (To be done only once, when you don't want to change the documents)
 
@@ -159,3 +160,16 @@ Then paste your token with right click.
     -   Launch `piaf_benchmark.py`
     -   It uses the french question-answering dataset : `AgentPublic/piaf`.
     -   So you can also tweak the sample size : `QUESTIONS_AMOUNT`.
+
+---
+
+## 🤖💬 NiceGUI Chatbot
+
+You can test the rag through a simple NiceGUI application.
+
+-   1️⃣ Launch the `main.py` file in the `nicegui_app` folder.
+-   2️⃣ It will open in your browser at `http://127.0.0.1:8080`.
+-   3️⃣ Create an account and login.
+
+-   The conversation is saved while the API is running.
+-   Credentials are stored in an SQLite database.

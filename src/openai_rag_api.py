@@ -22,8 +22,10 @@ from gensim.corpora import Dictionary
 from gensim.models import TfidfModel
 import gensim.downloader as api
 from gensim.similarities import SparseTermSimilarityMatrix, WordEmbeddingSimilarityIndex
-
 from sentence_transformers import SentenceTransformer, util
+
+from langdetect import detect
+from deep_translator import GoogleTranslator
 
 app = FastAPI() # FastAPI instance 
 
@@ -156,6 +158,28 @@ def evaluate_answer_quality_camembert(generated_answer, expected_answer):
 
     return similarity_score.item()
 
+def verify_language(text):
+    """return false if the text contains wrong characters or if the first sentence is in english"""
+    # \u4e00-\u9fff → chinese characters
+    # \u0400-\u04FF → cyrillic characters
+    chinese_pattern = re.compile(r'[\u4e00-\u9fff]')
+    cyrillic_pattern = re.compile(r'[\u0400-\u04FF]')
+
+    if chinese_pattern.search(text) or cyrillic_pattern.search(text):
+        return False
+    
+    sentences = re.split(r'[.?!]\s+', text)
+    first_sentence = sentences[0] if sentences else text
+
+    try:
+        lang = detect(first_sentence)
+        if lang == 'en':
+            return False
+    except:
+        print("ERREUR DE LANGAGE")
+        return True
+
+    return True
 
 @app.post("/v1/chat/completions")
 def openai_chat(request: OpenAIRequest):
@@ -191,15 +215,23 @@ def openai_chat(request: OpenAIRequest):
         evaluation = True
     ollama_query = [{'role': 'user', 'content': generate_prompt(context, user_message, evaluation)}]
     
-    # Query the LLM
-    llm_response = query_ollama(request.model, ollama_query, request.ollama_server_url)
-
-    print(f"Response : {llm_response['message']['content']}")
+    correct_language = False
     
-    # Remove the "thinking" part from deepseek responses
-    if ("deepseek" in request.model):
-        llm_response['message']['content'] = re.sub(r"<think>.*?</think>\n?", "", llm_response['message']['content'], flags=re.DOTALL)
+    total_attempts = 0 
+    while not correct_language and total_attempts < 3:
+        total_attempts+=1 # after 3 atempts we keep the last wrong response
         
+        # Query the LLM
+        llm_response = query_ollama(request.model, ollama_query, request.ollama_server_url)
+        
+        print(f"Response : {llm_response['message']['content']}")
+        
+        # Remove the "thinking" part from deepseek responses
+        if ("deepseek" in request.model):
+            llm_response['message']['content'] = re.sub(r"<think>.*?</think>\n?", "", llm_response['message']['content'], flags=re.DOTALL)
+            
+        if verify_language(llm_response['message']['content']):
+            correct_language = True
     
     # Format response in OpenAI format
     return format_response(request, llm_response)
