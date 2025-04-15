@@ -158,6 +158,20 @@ def evaluate_answer_quality_camembert(generated_answer, expected_answer):
 
     return similarity_score.item()
 
+def clean_original_response(text):
+    """Keep the first response before any rephrasing"""
+    patterns = [
+        r"(?i)^\**\s*réponse(\s+en\s+français)?(\s+(concise|finale|formatée))?\s*[:：]",
+    ]
+
+    lines = text.splitlines()
+    cleaned = []
+    for line in lines:
+        if any(re.match(pattern, line.strip()) for pattern in patterns):
+            break
+        cleaned.append(line)
+    return "\n".join(cleaned).strip()
+
 def verify_language(text):
     """return false if the text contains wrong characters or if the first sentence is in english"""
     # \u4e00-\u9fff → chinese characters
@@ -168,16 +182,16 @@ def verify_language(text):
     if chinese_pattern.search(text) or cyrillic_pattern.search(text):
         return False
     
-    sentences = re.split(r'[.?!]\s+', text)
-    first_sentence = sentences[0] if sentences else text
+    #sentences = re.split(r'[.?!]\s+', text)
+    #first_sentence = sentences[0] if sentences else text
 
     try:
-        lang = detect(first_sentence)
+        lang = detect(text)
         if lang == 'en':
             return False
     except:
-        print("ERREUR DE LANGAGE")
-        return True
+        print("LANGUAGE ERROR")
+        return False
 
     return True
 
@@ -232,7 +246,10 @@ def openai_chat(request: OpenAIRequest):
             
         if verify_language(llm_response['message']['content']):
             correct_language = True
-    
+        
+        # Remove a possible rephrasing
+        llm_response['message']['content'] = clean_original_response(llm_response['message']['content'])
+        
     # Format response in OpenAI format
     return format_response(request, llm_response)
 
