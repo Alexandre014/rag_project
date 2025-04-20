@@ -29,8 +29,8 @@ def embed_data(data, index_destination):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
     docs = text_splitter.split_documents(data)
     
-    # Define the retrieving configuration for later
-    modelPath = "intfloat/multilingual-e5-base" # model for retrieving
+    # Define the retrieval configuration for later
+    modelPath = "intfloat/multilingual-e5-base" # model for retrieval
     model_kwargs = {'device':'cpu'} # model configuration options
     encode_kwargs = {'normalize_embeddings': False} # encoding options
 
@@ -71,12 +71,7 @@ def load_index_from_dataset(dataset_name, data_column, index_destination):
     loader = HuggingFaceDatasetLoader(dataset_name, data_column)
     data = loader.load() # Load the data
     
-    #print(data[0].page_content)
-    #here i want to reduce data amount
-    #data = data[:1000]
-    
-    # We keep each value only once
-    #unique_data = list({doc.page_content: doc for doc in data}.values())
+    # We keep each value only once and add the title of the document in the data
     unique_dict = {}
     for doc in data:
         unique_dict[doc.page_content] = doc
@@ -84,7 +79,6 @@ def load_index_from_dataset(dataset_name, data_column, index_destination):
         
     unique_data = list(unique_dict.values()) 
     
-    #unique_data = data[:100]
     print(data[0])
     print(len(unique_data))
     embed_data(unique_data, index_destination) 
@@ -92,11 +86,13 @@ def load_index_from_dataset(dataset_name, data_column, index_destination):
         
 
 def main():
-    
-    pdf_index_path = "indexes/pdf_indexes/e5base"
-    dataset_index_path = "indexes/dataset_indexes/e5base_Full"
-    load_index_from_directory("data/pdf", pdf_index_path) #load the index only one time if you don't change the files
-    #load_index_from_dataset("AgentPublic/piaf", "context", index_path)
+    # if you retrieve data from PDF files: 
+    dataset_index_path = "indexes/dataset_indexes/e5base_Full" 
+    load_index_from_directory("data/pdf", pdf_index_path)
 
+    # if you retrieve data from a dataset:
+    pdf_index_path = "indexes/pdf_indexes/e5base"
+    #load_index_from_dataset("AgentPublic/piaf", "context", index_path)
+    
 if __name__ == "__main__":
     main()

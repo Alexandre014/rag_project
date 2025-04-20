@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import List, Tuple
 import requests
 import asyncio
+import random
 
 conn = sqlite3.connect("users.db", check_same_thread=False)
 cursor = conn.cursor()
@@ -27,6 +28,14 @@ CREATE TABLE IF NOT EXISTS sessions (
 )
 """)
 conn.commit()
+
+def load_predefined_questions(filepath="eval_questions.txt") -> List[str]:
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            return [line.strip() for line in f if line.strip()]
+    except Exception as e:
+        print(f"Erreur lors du chargement des questions : {e}")
+        return []
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -198,11 +207,23 @@ async def main_page():
             send_button = ui.button("Envoyer", on_click=send).classes("ml-2")
 
     await ui.context.client.connected()
-    with ui.column().classes("w-full max-w-2xl mx-auto items-stretch"):
-        chat_messages()
-        spinner = ui.spinner('dots', size='lg', color='blue')
-        spinner.set_visibility(False)
-        spinner_set_visibility = spinner.set_visibility
+    
+    questions = load_predefined_questions()
+    random_questions = random.sample(questions, min(3, len(questions)))
+    
+    with ui.row().classes("w-full max-w-5xl mx-auto"):
+        # chat column
+        with ui.column().classes("w-full items-stretch"):
+            chat_messages()
+            spinner = ui.spinner('dots', size='lg', color='blue')
+            spinner.set_visibility(False)
+            spinner_set_visibility = spinner.set_visibility
+        # questions column
+        with ui.row():
+            ui.label("Exemples de questions :").classes("font-bold").style('font-size: 16px')
+            for question in random_questions:
+                ui.button(question, on_click=lambda q=question: text_input.set_value(q)).props("flat dense").classes("text-left normal-case")
+
 
     with ui.header():
         ui.button("Se déconnecter", on_click=logout)
