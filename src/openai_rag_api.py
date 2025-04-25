@@ -181,9 +181,6 @@ def verify_language(text):
 
     if chinese_pattern.search(text) or cyrillic_pattern.search(text):
         return False
-    
-    #sentences = re.split(r'[.?!]\s+', text)
-    #first_sentence = sentences[0] if sentences else text
 
     try:
         lang = detect(text)
