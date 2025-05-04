@@ -173,3 +173,5 @@ You can test the rag through a simple NiceGUI application.
 
 -   The conversation is saved while the API is running.
 -   Credentials are stored in an SQLite database.
+
+![final NiceGUI user interface](illustration.png)
